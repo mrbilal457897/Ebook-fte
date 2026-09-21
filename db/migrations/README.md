@@ -33,13 +33,15 @@ touches (plan.md project structure).
 data-model.md defers two choices to the moment the first real migration is
 authored (T006), and T001 must not foreclose them:
 
-1. **Plain SQL vs. Alembic.** The mechanism above is plain SQL. If Alembic is
-   adopted at T006 time, the already-authored SQL files become the baseline
-   (Alembic `version_table` seeded from `schema_migrations`), and the choice is
-   recorded here. Until then, plain SQL stands and `schema_migrations` is the
-   source of applied state.
-2. **`uuid` vs. `bigint` ids.** data-model.md default is `uuid`, both options
-   remain open; the chosen convention is recorded here when T006 settles it.
+1. **Plain SQL vs. Alembic.** **Settled: plain SQL (T006).** The `apply.sh`
+   mechanism and `schema_migrations` tracking already exist and are
+   idempotent; adopting Alembic would discard a working, tested mechanism with
+   no countervailing benefit at this scale. Future migrations are forward-only
+   `NNNN_name.sql` files applied in lexicographic order.
+2. **`uuid` vs. `bigint` ids.** **Settled: `uuid`** (data-model.md default),
+   generated via `gen_random_uuid()` (built-in on PostgreSQL ≥13; no pgcrypto
+   extension required). All primary keys in `0001_create_slice_001_schema.sql`
+   are uuid.
 
 ## Schema conventions this slice must follow (summary of data-model.md)
 
