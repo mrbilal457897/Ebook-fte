@@ -3,5 +3,5 @@ export default function GeneratePage() {
     <main>
       <h1>Generate</h1>
     </main>
-  );
+  )
 }

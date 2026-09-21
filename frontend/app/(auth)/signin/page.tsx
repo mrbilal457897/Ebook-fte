@@ -3,5 +3,5 @@ export default function SigninPage() {
     <main>
       <h1>Sign in</h1>
     </main>
-  );
+  )
 }
