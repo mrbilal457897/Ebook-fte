@@ -60,3 +60,15 @@ authored (T006), and T001 must not foreclose them:
 export DATABASE_URL='postgres://user:pass@localhost:5432/ebookfte'
 bash db/migrations/apply.sh
 ```
+
+## Dev seed
+
+`db/seeds/seeds.sql` inserts one tenant (slug `example-press`) for
+sign-up-linkage testing (quickstart prerequisite). It is **data**, not schema,
+so it is not tracked by `schema_migrations`; apply it explicitly:
+
+```sh
+psql -v ON_ERROR_STOP=1 -f db/seeds/seeds.sql "$DATABASE_URL"
+```
+
+Re-running is safe (idempotent `INSERT … ON CONFLICT (slug) DO NOTHING`).
