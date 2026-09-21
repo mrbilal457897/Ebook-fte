@@ -1,0 +1,27 @@
+# Secrets — never commit (AGENTS.md §5)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+uv.lock.bak
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# Working handoffs (constitution /speckit conventions)
+tmp/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
