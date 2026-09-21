@@ -97,9 +97,10 @@
 - [ ] T030 [US2] Orchestrator admission + routing flow in `agents/orchestrator/src/orchestrator/server.py` + `gate.py`: on an eligible request, acquire lease, resolve model (default Gemini or per-request BYOK via `model_credentials`), run the Content Agent via ADK async runner, stream events (research.md §3). (Depends on T012–T018.)
 - [ ] T031 [P] [US2] BYOK resolution in `agents/orchestrator/src/orchestrator/models.py` (or `gate.py`): resolve `accounts.active_byok_credential_id`, decrypt key in-memory only, configure ADK model per request (Gemini BYOK = customer key; OpenAI/Anthropic via LiteLLM); auth failure → `byok_invalid`, refund credit, NO fallback (FR-008, research.md §6).
 - [ ] T032 [US2] Incremental persistence in `agents/orchestrator/src/orchestrator/persistence.py`: append each chunk to `content_versions.content`, bump `updated_at`, renew lease per chunk, commit BEFORE emitting each `token` event (FR-005, research.md §7); terminal writes flip `is_partial=false` + write invocation/audit rows in the same transaction (FR-006).
-- [ ] T033 [P] [US2] Wire contract-level step in `agents/orchestrator/src/orchestrator/stream.py` mapping ADK partial events → SSE `token` events and terminal → `version`/`error` exactly per contracts/generation-api.md / orchestrator-api.md (integration for T011 spike).
-- [ ] T034 [US2] Next.js proxy route in `frontend/app/api/generate/route.ts`: forward authed request to Orchestrator with internal token + `accountRef {tenantId, accountId}` derived from session (never from body), return `new Response(stream)` immediately with SSE discipline headers (`Content-Type: text/event-stream`, `Connection: keep-alive`, `Cache-Control: no-cache, no-transform`, `X-Accel-Buffering: no`, `runtime='nodejs'`, `dynamic='force-dynamic'`), proxy `token`/`version`/`error` and JSON pre-stream errors untouched (research.md §2). (Depends on T023, T030.)
-- [ ] T035 [US2] Streaming UI in `frontend/app/generate/page.tsx` + `frontend/components/` (composer, stream panel, allowance countdown per ebook-fte-design-system): POST + ReadableStream reader, token-by-token render, "still working" state on slow first token, "generation stopped" on error/close.
+- [ ] T033 [US2] `GET /api/account` route in `frontend/app/api/account/route.ts`: auth-required; read `accounts` (`free_tier_count`, `free_tier_limit`), the active BYOK credential's provider, and any live `run_states` lease — resolved from the authenticated session via the DAL/auth seam (`frontend/lib/tenancy.ts`; never from the body). Return exactly per contracts/generation-api.md §GET /api/account: `200 → { "freeTier": { "used": n, "limit": 3, "remaining": m }, "inFlight": bool, "activeByokProvider": "gemini"|"openai"|"anthropic"|null }`. Drives the allowance display, the US3 exhaustion/upgrade prompt, and cross-device in-flight state (FR-009, FR-011). (Depends on T009, T022, T031.)
+- [ ] T034 [P] [US2] Wire contract-level step in `agents/orchestrator/src/orchestrator/stream.py` mapping ADK partial events → SSE `token` events and terminal → `version`/`error` exactly per contracts/generation-api.md / orchestrator-api.md (integration for T011 spike). (Depends on T033.)
+- [ ] T035 [US2] Next.js proxy route in `frontend/app/api/generate/route.ts`: forward authed request to Orchestrator with internal token + `accountRef {tenantId, accountId}` derived from session (never from body), return `new Response(stream)` immediately with SSE discipline headers (`Content-Type: text/event-stream`, `Connection: keep-alive`, `Cache-Control: no-cache, no-transform`, `X-Accel-Buffering: no`, `runtime='nodejs'`, `dynamic='force-dynamic'`), proxy `token`/`version`/`error` and JSON pre-stream errors untouched (research.md §2). (Depends on T023, T030.)
+- [ ] T036 [US2] Streaming UI in `frontend/app/generate/page.tsx` + `frontend/components/` (composer, stream panel, allowance countdown per ebook-fte-design-system): POST + ReadableStream reader, token-by-token render, "still working" state on slow first token, "generation stopped" on error/close.
 
 **Checkpoint**: User Stories 1 AND 2 both work independently.
 
@@ -115,13 +116,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T036 [P] [US3] Test "4th attempt blocked before model call": account with `free_tier_count = 3` → next `POST /api/generate` (or `/v1/generate`) rejected with `402 {"code":"free_tier_exhausted","upgrade":true}` before any model call; no invocation/audit rows for the blocked attempt; counter still 3 (FR-007, AC2, spec scenario 1) in `agents/orchestrator/tests/test_exhaustion.py`.
-- [ ] T037 [P] [US3] Test "near-simultaneous race for the last credit": account with 2 used → two concurrent requests → exactly one admitted, counter reads 3, the other blocked (FR-007, AC2, spec scenario 2) in `agents/orchestrator/tests/test_free_tier_race.py`.
+- [ ] T037 [P] [US3] Test "4th attempt blocked before model call": account with `free_tier_count = 3` → next `POST /api/generate` (or `/v1/generate`) rejected with `402 {"code":"free_tier_exhausted","upgrade":true}` before any model call; no invocation/audit rows for the blocked attempt; counter still 3 (FR-007, AC2, spec scenario 1) in `agents/orchestrator/tests/test_exhaustion.py`.
+- [ ] T038 [P] [US3] Test "near-simultaneous race for the last credit": account with 2 used → two concurrent requests → exactly one admitted, counter reads 3, the other blocked (FR-007, AC2, spec scenario 2) in `agents/orchestrator/tests/test_free_tier_race.py`.
 
 ### Implementation for User Story 3
 
-- [ ] T038 [US3] Exhaustion branch in `agents/orchestrator/src/orchestrator/gate.py` + `server.py`: admission gate short-circuits with `402 free_tier_exhausted` (JSON, pre-stream) when `free_tier_count >= limit`, no model call, no lease, no rows (FR-007). (Depends on T012.)
-- [ ] T039 [US3] Upgrade prompt + subscription entry trigger in `frontend/components/` + `frontend/lib/billing/` (or `lib/upgrade.ts`): on `402 free_tier_exhausted`, show the upgrade modal/prompt per ebook-fte-design-system skill that initiates the Lago checkout entry call (FR-011; only the trigger, pinned Lago client, checkout flow deferred).
+- [ ] T039 [US3] Exhaustion branch in `agents/orchestrator/src/orchestrator/gate.py` + `server.py`: admission gate short-circuits with `402 free_tier_exhausted` (JSON, pre-stream) when `free_tier_count >= limit`, no model call, no lease, no rows (FR-007). (Depends on T012.)
+- [ ] T040 [US3] Upgrade prompt + subscription entry trigger in `frontend/components/` + `frontend/lib/billing/` (or `lib/upgrade.ts`): on `402 free_tier_exhausted`, show the upgrade modal/prompt per ebook-fte-design-system skill that initiates the Lago checkout entry call (FR-011; only the trigger, pinned Lago client, checkout flow deferred).
 
 **Checkpoint**: User Story 3 fully functional.
 
@@ -137,14 +138,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T040 [P] [US4] Test "interruption keeps all content retrievable": start generation, let ~10 chunks stream, refresh/close → `GET /api/generation/[id]` returns `200` with `isPartial:true` and `content` exactly equal to what the UI rendered before the interruption (FR-005, AC4, spec scenario 1) in `frontend/tests/generation.refetch.test.ts` + a backend variant in `agents/orchestrator/tests/test_interruption.py`.
-- [ ] T041 [P] [US4] Test "second concurrent generation rejected": hold one generation open → second `POST /api/generate` from the same account → `409 {"code":"already_in_progress"}`, not queued, not parallel; after lease self-expiry (no terminal event) a new request is accepted (FR-009, AC6, spec scenarios 2+3, Edge Case "stale in-flight lock") in `agents/orchestrator/tests/test_inflight_lease.py`.
+- [ ] T041 [P] [US4] Test "interruption keeps all content retrievable": start generation, let ~10 chunks stream, refresh/close → `GET /api/generation/[id]` returns `200` with `isPartial:true` and `content` exactly equal to what the UI rendered before the interruption (FR-005, AC4, spec scenario 1) in `frontend/tests/generation.refetch.test.ts` + a backend variant in `agents/orchestrator/tests/test_interruption.py`.
+- [ ] T042 [P] [US4] Test "second concurrent generation rejected": hold one generation open → second `POST /api/generate` from the same account → `409 {"code":"already_in_progress"}`, not queued, not parallel; after lease self-expiry (no terminal event) a new request is accepted (FR-009, AC6, spec scenarios 2+3, Edge Case "stale in-flight lock") in `agents/orchestrator/tests/test_inflight_lease.py`.
 
 ### Implementation for User Story 4
 
-- [ ] T042 [US4] Enforce the single-in-flight lease in `agents/orchestrator/src/orchestrator/gate.py` + `server.py`: guarded `run_states` insert (unique live lease per account) → present+unexpired ⇒ `409 already_in_progress`; renew per `token`; release on terminal; expired lease treated as free (FR-009, Clarification Q2). (Depends on T013, T030.)
-- [ ] T043 [US4] Saved-content re-fetch endpoint in `frontend/app/api/generation/[id]/route.ts`: auth required, `404` if the version is not in the caller's tenant, returns `{versionId, bookId, conversationId, content, isPartial, updatedAt}` (AC4; contracts/generation-api.md).
-- [ ] T044 [US4] Frontend interruption UX in `frontend/app/generate/page.tsx` + `frontend/components/stream/`: on unmount/refresh abort the SSE reader and show "generation stopped"; on re-open, offer re-fetch of the saved partial via `GET /api/generation/[id]`; re-submit starts a FRESH generation (no resume — Assumption, spec scenario 3).
+- [ ] T043 [US4] Enforce the single-in-flight lease in `agents/orchestrator/src/orchestrator/gate.py` + `server.py`: guarded `run_states` insert (unique live lease per account) → present+unexpired ⇒ `409 already_in_progress`; renew per `token`; release on terminal; expired lease treated as free (FR-009, Clarification Q2). (Depends on T013, T030.)
+- [ ] T044 [US4] Saved-content re-fetch endpoint in `frontend/app/api/generation/[id]/route.ts`: auth required, `404` if the version is not in the caller's tenant, returns `{versionId, bookId, conversationId, content, isPartial, updatedAt}` (AC4; contracts/generation-api.md).
+- [ ] T045 [US4] Frontend interruption UX in `frontend/app/generate/page.tsx` + `frontend/components/stream/`: on unmount/refresh abort the SSE reader and show "generation stopped"; on re-open, offer re-fetch of the saved partial via `GET /api/generation/[id]`; re-submit starts a FRESH generation (no resume — Assumption, spec scenario 3).
 
 **Checkpoint**: All user stories independently functional.
 
@@ -154,11 +155,11 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T045 End-to-end quickstart.md validation: run AC1–AC7 exactly as documented with both services up (orchestrator :8080, frontend :3000); record results per scenario (constitution Article VI.4 — one commit per step already holds).
-- [ ] T046 [P] Run `uv run ruff check . && uv run pyright` in both `agents/orchestrator/` and `agents/content-agent/`, and `npm run lint` + Vitest in `frontend/`; fix everything to green (AGENTS.md §5, Article X).
-- [ ] T047 [P] Cross-cut the sneaky failure cases per quickstart "Failure-path tests that must exist": BYOK auth failure, provider stream error, `409 already_in_progress`, `402 free_tier_exhausted`, atomic-counter race — confirm each has an automated test (Article X).
-- [ ] T048 [P] Final audit-log invariant sweep: confirm exactly one terminal `audit_log` row per generation in ALL paths including provider-failed (`generation.failed`) and no spurious rows from chunk writes (use `persistence.chunk` action if chunks are logged; data-model.md audit rule).
-- [ ] T049 [P] Docs sync: `specs/001-free-tier-content-generation/tasks.md` marks tasks complete; quickstart validated; AGENTS.md unchanged (no new rules needed); `.env.example` final sync.
+- [ ] T046 End-to-end quickstart.md validation: run AC1–AC7 exactly as documented with both services up (orchestrator :8080, frontend :3000); record results per scenario (constitution Article VI.4 — one commit per step already holds).
+- [ ] T047 [P] Run `uv run ruff check . && uv run pyright` in both `agents/orchestrator/` and `agents/content-agent/`, and `npm run lint` + Vitest in `frontend/`; fix everything to green (AGENTS.md §5, Article X).
+- [ ] T048 [P] Cross-cut the sneaky failure cases per quickstart "Failure-path tests that must exist": BYOK auth failure, provider stream error, `409 already_in_progress`, `402 free_tier_exhausted`, atomic-counter race — confirm each has an automated test (Article X).
+- [ ] T049 [P] Final audit-log invariant sweep: confirm exactly one terminal `audit_log` row per generation in ALL paths including provider-failed (`generation.failed`) and no spurious rows from chunk writes (use `persistence.chunk` action if chunks are logged; data-model.md audit rule).
+- [ ] T050 [P] Docs sync: `specs/001-free-tier-content-generation/tasks.md` marks tasks complete; quickstart validated; AGENTS.md unchanged (no new rules needed); `.env.example` final sync.
 
 ---
 
@@ -174,7 +175,7 @@
 ### User Story Dependencies
 
 - **US1 (P1)**: Starts after Foundational; no dependency on other stories.
-- **US2 (P1)**: Starts after Foundational; depends on US1's auth gate (T023 present when T034 wires the proxy).
+- **US2 (P1)**: Starts after Foundational; depends on US1's auth gate (T023 present when T035 wires the proxy).
 - **US3 (P2)**: Starts after Foundational + US2 admission flow (reuses T012).
 - **US4 (P2)**: Starts after Foundational + US2 persistence/streaming (reuses T013, T032).
 
@@ -188,7 +189,7 @@
 - All Setup tasks marked [P] run in parallel.
 - Foundational [P] tasks (T008–T011, T013) run in parallel around T006/T012.
 - All story test tasks marked [P] run in parallel (per story).
-- US2 flows can use T030 (server flow), T031 (BYOK), T032 (persistence), T033 (stream mapping), T034 (proxy), T035 (UI) — T031/T033 parallel after T030 core is in place.
+- US2 flows can use T030 (server flow), T031 (BYOK), T032 (persistence), T034 (stream mapping), T035 (proxy), T036 (UI) — T031/T034 parallel after T030 core is in place.
 - US3 and US4 can be worked concurrently after US2 core lands.
 
 ---
@@ -225,5 +226,5 @@ Task: "SSE event mapping in stream.py"
 
 ### Note
 
-- Endpoints/AC labels: AC1→US1, AC2→US3, AC3→US2, AC4→US4, AC5→US2, AC6→US4, AC7→US2 (quickstart mapping), all seven re-verified in T045.
+- Endpoints/AC labels: AC1→US1, AC2→US3, AC3→US2, AC4→US4, AC5→US2, AC6→US4, AC7→US2 (quickstart mapping), all seven re-verified in T046.
 - Auth blocker from the draft context is RESOLVED (Better Auth RATIFIED 2026-09-19; research.md §1 RATIFIED note).
