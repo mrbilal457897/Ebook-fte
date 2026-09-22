@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import AuthShell from "@/components/auth/auth-shell"
-import { authClient } from "@/lib/auth/client"
 import { linkCurrentSession } from "@/lib/auth/client-link"
 
 function useTenantSlug() {
@@ -24,6 +23,7 @@ function SigninForm() {
   useEffect(() => {
     let cancelled = false
     async function linkIfSignedIn() {
+      const { authClient } = await import("@/lib/auth/client")
       const session = await authClient.getSession()
       if (cancelled || !session?.data?.user) return
       await linkCurrentSession(tenantSlug)
@@ -40,6 +40,7 @@ function SigninForm() {
     setError("")
     setBusy(true)
     try {
+      const { authClient } = await import("@/lib/auth/client")
       const { error } = await authClient.signIn.email({ email, password })
       if (error) {
         setError(error.message || "Sign-in failed")
@@ -56,6 +57,7 @@ function SigninForm() {
 
   async function onGoogle() {
     setError("")
+    const { authClient } = await import("@/lib/auth/client")
     await authClient.signIn.social({
       provider: "google",
       callbackURL: `/signin?tenant=${encodeURIComponent(tenantSlug)}`,

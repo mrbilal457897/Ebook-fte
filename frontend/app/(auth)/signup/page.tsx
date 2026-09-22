@@ -4,7 +4,6 @@ import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import AuthShell from "@/components/auth/auth-shell"
-import { authClient } from "@/lib/auth/client"
 import { linkCurrentSession } from "@/lib/auth/client-link"
 
 function useTenantSlug() {
@@ -26,6 +25,7 @@ function SignupForm() {
     setError("")
     setBusy(true)
     try {
+      const { authClient } = await import("@/lib/auth/client")
       const { error } = await authClient.signUp.email({
         name,
         email,
@@ -46,6 +46,7 @@ function SignupForm() {
 
   async function onGoogle() {
     setError("")
+    const { authClient } = await import("@/lib/auth/client")
     await authClient.signIn.social({
       provider: "google",
       callbackURL: `/signin?tenant=${encodeURIComponent(tenantSlug)}`,
