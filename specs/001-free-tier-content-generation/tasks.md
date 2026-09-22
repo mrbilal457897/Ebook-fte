@@ -62,14 +62,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US1] Test "signed-out generation is rejected with nothing stored": `POST /api/generate` without a session → `401 {"code":"signed_out"}` and zero new rows in `content_versions`/`capability_invocations`/`audit_log` (FR-001, AC1, spec scenario 3) in `frontend/tests/generate.gate.test.ts`.
-- [ ] T020 [P] [US1] Test "sign-up binds account to arriving tenant": new user signs up by email and by OAuth via a tenant slug → one `accounts` row linked to the correct `tenant_id`, `free_tier_count = 0`, `free_tier_limit = 3` (FR-010, spec scenario 1) in `frontend/tests/signup.link.test.ts`.
+- [X] T019 [P] [US1] Test "signed-out generation is rejected with nothing stored": `POST /api/generate` without a session → `401 {"code":"signed_out"}` and zero new rows in `content_versions`/`capability_invocations`/`audit_log` (FR-001, AC1, spec scenario 3) in `frontend/tests/generate.gate.test.ts`.
+- [X] T020 [P] [US1] Test "sign-up binds account to arriving tenant": new user signs up by email and by OAuth via a tenant slug → one `accounts` row linked to the correct `tenant_id`, `free_tier_count = 0`, `free_tier_limit = 3` (FR-010, spec scenario 1) in `frontend/tests/signup.link.test.ts`.
 
 ### Implementation for User Story 1
 
-- [ ] T021 [P] [US1] Sign-up/sign-in pages using the auth seam: `frontend/app/(auth)/signup/page.tsx` and `frontend/app/(auth)/signin/page.tsx` (email/password + OAuth buttons per ebook-fte-design-system skill).
-- [ ] T022 [US1] First-sign-in handler in `frontend/lib/auth/` (or DAL per T009 note): create the `accounts` row on first successful sign-in, `tenant_id` from the entry slug the visitor arrived through, `auth_subject` bound, email normalized/case-folded (data-model.md; scenario 1). (Depends on T009, T010, T021.)
-- [ ] T023 [US1] Enforce the auth gate in `frontend/app/api/generate/route.ts` at the route-handler/DAL level (not middleware-only per CVE note): signed-out → `401 signed_out`, no rows created, no model call (FR-001). Streaming proxy logic arrives in US2.
+- [X] T021 [P] [US1] Sign-up/sign-in pages using the auth seam: `frontend/app/(auth)/signup/page.tsx` and `frontend/app/(auth)/signin/page.tsx` (email/password + OAuth buttons per ebook-fte-design-system skill).
+- [X] T022 [US1] First-sign-in handler in `frontend/lib/auth/` (or DAL per T009 note): create the `accounts` row on first successful sign-in, `tenant_id` from the entry slug the visitor arrived through, `auth_subject` bound, email normalized/case-folded (data-model.md; scenario 1). (Depends on T009, T010, T021.)
+- [X] T023 [US1] Enforce the auth gate in `frontend/app/api/generate/route.ts` at the route-handler/DAL level (not middleware-only per CVE note): signed-out → `401 signed_out`, no rows created, no model call (FR-001). Streaming proxy logic arrives in US2.
 
 **Checkpoint**: User Story 1 fully functional and independently testable.
 
