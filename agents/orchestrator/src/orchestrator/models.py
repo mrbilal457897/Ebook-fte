@@ -27,7 +27,7 @@ def _get_pool() -> ConnectionPool:
     global _pool
     if _pool is None:
         _pool = ConnectionPool(
-            config.DATABASE_URL,
+            config.get_settings().database_url,
             kwargs={"row_factory": dict_row},
         )
         _pool.open()
@@ -199,7 +199,6 @@ def create_content_version(
     book_id: str,
     tenant_id: str,
     account_id: str,
-    prompt: str,
 ) -> str:
     row = fetchone(
         conn.execute(
@@ -209,7 +208,7 @@ def create_content_version(
                  is_partial, created_at, updated_at)
             SELECT %s, b.id, b.tenant_id, b.account_id,
                    COALESCE(MAX(cv.version_num), 0) + 1,
-                   %s, true, now(), now()
+                   '', true, now(), now()
             FROM books b
             LEFT JOIN content_versions cv
                 ON cv.book_id = b.id AND cv.tenant_id = b.tenant_id
@@ -218,7 +217,7 @@ def create_content_version(
             GROUP BY b.id
             RETURNING id
             """,
-            (_new_id(), prompt, book_id, tenant_id, account_id),
+            (_new_id(), book_id, tenant_id, account_id),
         )
     )
     assert row is not None
