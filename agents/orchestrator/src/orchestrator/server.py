@@ -5,14 +5,18 @@ browser never reaches this service. The Next.js proxy authenticates the user
 and presents a short-lived internal token; the Orchestrator derives business
 context from the forwarded `accountRef`, never from model text (Article IV.5).
 
-T017 scope: admission gate + JSON pre-stream rejections + SSE endpoint whose
-event payloads come from the `stream` mapper. Later tasks layer BYOK
-resolution (T031), incremental persistence (T032), lease renewal/release
-(T043), and the terminal audit/invocation transaction (FR-006).
+Admission + rejection order (contracts guarantee), grown through the tasks:
+
+  T017 admission gate + JSON pre-stream rejections.
+  T030 admit -> resolve model -> stream via ADK runner (this module).
+  T031 BYOK resolution pre-stream (refund + terminal error on dead cred).
+  T032 per-chunk persistence + terminal txn (hooks into stream_generation).
+  T043 per-chunk lease renewal + release-on-terminal (same hooks).
 """
 
 import json
 import secrets
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -20,7 +24,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from orchestrator import config, gate, models
+from orchestrator import byok, config, gate, models, persistence
 from orchestrator.stream import stream_generation
 
 MAX_PROMPT_CHARS = 20_000
@@ -122,6 +126,51 @@ def _admit_request(
         return result.ctx
 
 
+def _resolve_model_or_refund(
+    req: GenerateRequest, ctx: gate.GenerationContext
+) -> byok.ResolvedModel | None:
+    """Resolve the model pre-stream. On an invalid/unwired BYOK credential:
+    refund the consumed free credit, audit, release the lease, and return
+    `None` so the endpoint can emit the terminal `error` event (FR-008,
+    AC7/T027). Resolution happens in its own committed transaction."""
+    try:
+        with models.transaction() as conn:
+            resolved = byok.resolve_generation_model(
+                conn,
+                tenant_id=ctx.tenant_id,
+                account_id=ctx.account_id,
+                credential_id=req.modelCredentialId,
+            )
+            if resolved is None:
+                persistence.fail_generation(
+                    conn,
+                    tenant_id=ctx.tenant_id,
+                    account_id=ctx.account_id,
+                    lease_id=ctx.lease_id,
+                    agent="orchestrator",
+                    inputs={"prompt": req.prompt},
+                    output={"error": "byok_invalid"},
+                    refund=True,
+                )
+                return None
+            # Live BYOK adapter check — invalid/unwired provider refunds too.
+            byok.get_model_adapter(resolved)
+            return resolved
+    except NotImplementedError:
+        with models.transaction() as conn:
+            persistence.fail_generation(
+                conn,
+                tenant_id=ctx.tenant_id,
+                account_id=ctx.account_id,
+                lease_id=ctx.lease_id,
+                agent="orchestrator",
+                inputs={"prompt": req.prompt},
+                output={"error": "byok_not_wired"},
+                refund=True,
+            )
+        return None
+
+
 @app.post("/v1/generate")
 async def generate(
     req: GenerateRequest, _: None = Depends(require_internal_token)
@@ -130,7 +179,65 @@ async def generate(
     if not prompt or len(prompt) > MAX_PROMPT_CHARS:
         raise Rejection(*_REJECT_BODIES["invalid_prompt"])
 
+    s = config.get_settings()
     ctx = _admit_request(req, prompt)
+
+    resolved = _resolve_model_or_refund(req, ctx)
+    if resolved is None:
+        async def err_only() -> AsyncIterator[str]:
+            yield _sse("error", {"code": "byok_invalid", "message": "BYOK credential is invalid", "refunded": True})
+
+        return StreamingResponse(err_only(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+    started = time.perf_counter()
+    persisted_any = False
+
+    def _persist_chunk(delta: str) -> None:
+        nonlocal persisted_any
+        with models.transaction() as conn:
+            persistence.persist_chunk(
+                conn,
+                version_id=ctx.version_id,
+                tenant_id=ctx.tenant_id,
+                account_id=ctx.account_id,
+                delta=delta,
+                lease_id=ctx.lease_id,
+                lease_window_seconds=s.lease_window_seconds,
+            )
+        persisted_any = True
+
+    def _finalize(full: str) -> None:
+        with models.transaction() as conn:
+            persistence.finalize_generation(
+                conn,
+                version_id=ctx.version_id,
+                tenant_id=ctx.tenant_id,
+                account_id=ctx.account_id,
+                lease_id=ctx.lease_id,
+                agent="orchestrator",
+                inputs={"prompt": req.prompt, "conversation_id": ctx.conversation_id},
+                output={
+                    "versionId": ctx.version_id,
+                    "bookId": ctx.book_id,
+                    "isPartial": False,
+                    "fullText": full,
+                },
+                latency_ms=models.latency_ms(started),
+                success=True,
+            )
+
+    def _fail(code: str) -> None:
+        with models.transaction() as conn:
+            persistence.fail_generation(
+                conn,
+                tenant_id=ctx.tenant_id,
+                account_id=ctx.account_id,
+                lease_id=ctx.lease_id,
+                agent="orchestrator",
+                inputs={"prompt": req.prompt},
+                output={"error": code},
+                refund=not persisted_any,
+            )
 
     async def sse() -> AsyncIterator[str]:
         async for payload in stream_generation(
@@ -140,14 +247,22 @@ async def generate(
             book_id=ctx.book_id,
             version_id=ctx.version_id,
             prompt=prompt,
+            model=None if resolved.provider == "platform" else resolved.model,
+            on_token=_persist_chunk,
+            on_terminal=_finalize,
+            on_failure=_fail,
         ):
-            yield (
-                f"event: {payload['event']}\n"
-                f"data: {json.dumps(payload['data'], separators=(',', ':'))}\n\n"
-            )
+            yield _sse(payload["event"], payload["data"])
 
     return StreamingResponse(
         sse(),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
+    )
+
+
+def _sse(event: str, data: dict[str, Any]) -> str:
+    return (
+        f"event: {event}\n"
+        f"data: {json.dumps(data, separators=(',', ':'))}\n\n"
     )

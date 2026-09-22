@@ -7,14 +7,14 @@ This is the integration seam for the T011 spike facts (pinned
   - content parts are genai `Part` objects (.text, not ["text"])
   - `invocation_id` correlates the run to the transplanted business records
 
-This module holds no DB side effects and no lease/audit policy on purpose:
-per-chunk persistence (T032), in-flight lease renewal/release (T043), and
-the terminal `capability_invocations` + `audit_log` rows in one transaction
-(FR-006/AC5) live in the server's streaming loop. This stays a pure mapper
-so each concern is testable alone.
+The mapper stays pure. Persistence / lease renewal / terminal transactions
+(FR-005/FR-006, T032/T043) are injected as `on_*` hooks by `server.py`; each
+hook runs synchronously BEFORE the corresponding event is yielded, so a
+commit that fails propagates into the `error` path instead of after the
+customer already saw the token.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 from google.adk.agents._streaming_mode import StreamingMode
@@ -23,7 +23,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
-from orchestrator.agent import orchestrator as orchestrator_agent
+from orchestrator.agent import build_orchestrator
 
 
 def _event_text(event: Any) -> str:
@@ -40,20 +40,26 @@ async def stream_generation(
     book_id: str,
     version_id: str,
     prompt: str,
+    model: str | None = None,
+    on_token: Callable[[str], None] | None = None,
+    on_terminal: Callable[[str], None] | None = None,
+    on_failure: Callable[[str], None] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Run the Orchestrator agent and yield `token` / `version` / `error` dicts.
 
     Each yielded dict is `{"event": "token", "data": {"delta": ...}}`,
     `{"event": "version", "data": {...}}` (exactly one), or
-    `{"event": "error", "data": {...}}` (exactly one, terminal). Callers
-    serialize to SSE and attach their own persistence/lease side effects.
+    `{"event": "error", "data": {...}}` (exactly one, terminal). A failed
+    `on_token`/`on_terminal` hook aborts the run and yields the `error` event
+    instead; `on_failure` is invoked before `error` so the server can refund
+    + audit + release the lease.
     """
     session_service = InMemorySessionService()
     await session_service.create_session(
         app_name="orchestrator", user_id=account_id, session_id=conversation_id
     )
     runner = Runner(
-        agent=orchestrator_agent,
+        agent=build_orchestrator(model=model),
         app_name="orchestrator",
         session_service=session_service,
     )
@@ -72,12 +78,16 @@ async def stream_generation(
                 delta = _event_text(event)
                 if not delta:
                     continue
+                if on_token is not None:
+                    on_token(delta)
                 full_text.append(delta)
                 yield {"event": "token", "data": {"delta": delta}}
             elif not event.partial and event.turn_complete:
                 full = _event_text(event) or "".join(full_text)
                 if not full:
                     continue
+                if on_terminal is not None:
+                    on_terminal(full)
                 yield {
                     "event": "version",
                     "data": {
@@ -90,11 +100,14 @@ async def stream_generation(
                 }
                 return
     except Exception as exc:  # noqa: BLE001 - any provider/transport fault maps to an error event
+        code = "provider_error"
+        if on_failure is not None:
+            on_failure(code)
         yield {
             "event": "error",
             "data": {
-                "code": "provider_error",
+                "code": code,
                 "message": str(exc),
-                "refunded": False,
+                "refunded": not full_text,
             },
         }
