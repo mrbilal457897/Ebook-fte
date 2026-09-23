@@ -101,6 +101,24 @@ def require_internal_token(request: Request) -> None:
         raise Rejection(401, {"code": "unauthorized", "message": "Bad internal token"})
 
 
+def _record_rate_limit_blocked(req: GenerateRequest) -> None:
+    """Persist the `rate_limit.blocked` audit row for an over-limit request
+    (T016 / data-model.md): committed separately because the admission txn
+    that detected the over-limit state rolls back entirely. PII stays out —
+    only the prompt snippet + kind, never raw device/IP identifiers."""
+    with models.transaction() as conn:
+        models.record_audit(
+            conn,
+            tenant_id=req.accountRef.tenantId,
+            account_id=req.accountRef.accountId,
+            agent="orchestrator",
+            action="rate_limit.blocked",
+            inputs={"prompt": req.prompt[:200]},
+            output={"error": "rate_limited"},
+            status="blocked",
+        )
+
+
 def _admit_request(
     req: GenerateRequest, prompt: str
 ) -> gate.GenerationContext:
@@ -121,6 +139,11 @@ def _admit_request(
         )
         if result.reject_reason is not None:
             status, body = _REJECT_BODIES[result.reject_reason]
+            # Admission tx rolls back on reject (nothing stored there); the
+            # over-limit case must still be auditable (T016: "only a
+            # rate_limit.blocked audit row") in its own committed txn.
+            if result.reject_reason == "rate_limited":
+                _record_rate_limit_blocked(req)
             raise Rejection(status, body)
         assert result.ctx is not None
         return result.ctx

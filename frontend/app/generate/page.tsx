@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import Composer from "@/components/generate/composer"
 import GenerateShell from "@/components/generate/generate-shell"
+import UpgradePrompt from "@/components/generate/upgrade-prompt"
 import StreamPanel from "@/components/stream/stream-panel"
 import type { StreamStatus } from "@/components/stream/stream-panel"
 import { streamGenerate } from "@/lib/sse-client"
@@ -11,6 +12,12 @@ import { streamGenerate } from "@/lib/sse-client"
 type AccountState = {
   freeTier: { used: number; limit: number; remaining: number }
   inFlight: boolean
+}
+
+type Refetched = {
+  versionId: string
+  content: string
+  isPartial: boolean
 }
 
 /**
@@ -27,11 +34,26 @@ export default function GeneratePage() {
   const [stillWorking, setStillWorking] = useState(false)
   const [upgradePrompt, setUpgradePrompt] = useState(false)
   const [account, setAccount] = useState<AccountState | null>(null)
+  const [savedHint, setSavedHint] = useState<Refetched | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
 
   const refreshAccount = useCallback(async () => {
     const res = await fetch("/api/account", { cache: "no-store" })
     if (res.ok) setAccount((await res.json()) as AccountState)
+  }, [])
+
+  const refetchSaved = useCallback(async (versionId: string) => {
+    controllerRef.current?.abort()
+    const res = await fetch(`/api/generation/${versionId}`, { cache: "no-store" })
+    if (!res.ok) {
+      setErrorMessage("Saved content could not be retrieved.")
+      setStatus("error")
+      return
+    }
+    const saved = (await res.json()) as Refetched
+    setText(saved.content)
+    setSavedHint({ versionId: saved.versionId, content: saved.content, isPartial: saved.isPartial })
+    setStatus(saved.isPartial ? "stopped" : "done")
   }, [])
 
   useEffect(() => {
@@ -40,6 +62,12 @@ export default function GeneratePage() {
     }
     void refreshAccount()
   }, [refreshAccount])
+
+  // US4: after a refresh/close, offer to retrieve the last interrupted draft.
+  const [interruptedVersionId, setInterruptedVersionId] = useState<string | null>(null)
+  useEffect(() => {
+    setInterruptedVersionId(sessionStorage.getItem("fte_version"))
+  }, [])
 
   useEffect(() => {
     return () => controllerRef.current?.abort()
@@ -51,6 +79,7 @@ export default function GeneratePage() {
     controllerRef.current = controller
 
     setText("")
+    setSavedHint(null)
     setErrorMessage(null)
     setUpgradePrompt(false)
     setStatus("working")
@@ -65,7 +94,14 @@ export default function GeneratePage() {
           setStillWorking(false)
           setText((prev) => prev + String(ev.data.delta ?? ""))
         } else if (ev.event === "version") {
+          const versionId = String(ev.data.versionId ?? "")
           setStatus("done")
+          setSavedHint({
+            versionId,
+            content: String(ev.data.fullText ?? ""),
+            isPartial: ev.data.isPartial === true,
+          })
+          sessionStorage.setItem("fte_version", versionId)
         }
       },
     })
@@ -122,10 +158,17 @@ export default function GeneratePage() {
           )}
         </header>
 
-        {upgradePrompt && (
-          <div className="banner is-warn" role="alert">
-            You‘ve used your 3 free generations. Upgrade to keep writing — the subscription flow is
-            on its way.
+        {upgradePrompt && <UpgradePrompt />}
+
+        {interruptedVersionId && status === "idle" && !savedHint && (
+          <div className="banner is-info" role="status">
+            You have a saved in-progress draft.
+            <button
+              className="btn-secondary"
+              onClick={() => void refetchSaved(interruptedVersionId)}
+            >
+              Retrieve it
+            </button>
           </div>
         )}
 
@@ -141,6 +184,7 @@ export default function GeneratePage() {
           status={status}
           stillWorking={stillWorking}
           errorMessage={errorMessage}
+          savedHint={savedHint?.isPartial ? savedHint.content : null}
         />
       </div>
     </GenerateShell>

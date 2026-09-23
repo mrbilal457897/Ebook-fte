@@ -12,11 +12,13 @@ export default function StreamPanel({
   status,
   stillWorking,
   errorMessage,
+  savedHint,
 }: {
   text: string
   status: StreamStatus
   stillWorking: boolean
   errorMessage: string | null
+  savedHint?: string | null
 }) {
   const hasText = text.length > 0
   const statusLabel =
@@ -47,10 +49,17 @@ export default function StreamPanel({
         {hasText ? text : "Your draft will appear here, word by word."}
       </div>
 
+      {savedHint && (
+        <div className="banner is-info">
+          This is a restored partial draft — everything the UI showed before the interruption is
+          here.
+        </div>
+      )}
+
       {status === "error" && errorMessage && (
         <div className="banner is-error">Stopped: {errorMessage}</div>
       )}
-      {status === "stopped" && (
+      {status === "stopped" && !savedHint && (
         <div className="banner">
           Stream closed — everything written so far has been saved; re-submit to start a fresh
           generation.

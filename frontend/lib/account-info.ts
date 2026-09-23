@@ -14,6 +14,15 @@ export type ByokInfo = {
   provider: ModelProvider | null
 }
 
+export type SavedContent = {
+  versionId: string
+  bookId: string
+  conversationId: string | null
+  content: string
+  isPartial: boolean
+  updatedAt: string
+}
+
 function toModelProvider(raw: string | undefined | null): ModelProvider | null {
   if (raw === "gemini" || raw === "openai" || raw === "anthropic") return raw
   return null
@@ -75,5 +84,49 @@ export async function getAccountInfo(): Promise<AccountInfo> {
     freeTier: { used, limit, remaining: Math.max(0, limit - used) },
     inFlight: (lease.rowCount ?? 0) > 0,
     activeByokProvider: toModelProvider(cred.rows[0]?.provider),
+  }
+}
+
+/**
+ * T044 interruption-salvage read for `GET /api/generation/[id]` (AC4). Only
+ * returns a version the caller's tenant+account owns (never a cross-tenant
+ * read — Article IV.5). The `conversationId` is the account's most recent
+ * conversation (the one created when the version was admitted); the schema
+ * has no direct version→conversation link, so null when none exists yet.
+ */
+export async function getSavedContent(versionId: string): Promise<SavedContent | null> {
+  requireDatabaseUrl()
+  const tenancy = await resolveTenancy()
+  const res = await getPool().query<{
+    version_id: string
+    book_id: string
+    conversation_id: string | null
+    content: string
+    is_partial: boolean
+    updated_at: string
+  }>(
+    `SELECT cv.id                             AS version_id,
+            cv.book_id                         AS book_id,
+            cv.content                         AS content,
+            cv.is_partial                      AS is_partial,
+            cv.updated_at                      AS updated_at,
+            (SELECT c.id
+             FROM conversations c
+             WHERE c.tenant_id = cv.tenant_id AND c.account_id = cv.account_id
+             ORDER BY c.created_at DESC
+             LIMIT 1)                          AS conversation_id
+     FROM content_versions cv
+     WHERE cv.id = $3 AND cv.tenant_id = $1 AND cv.account_id = $2`,
+    [tenancy.tenantId, tenancy.accountId, versionId],
+  )
+  const row = res.rows[0]
+  if (!row) return null
+  return {
+    versionId: row.version_id,
+    bookId: row.book_id,
+    conversationId: row.conversation_id,
+    content: row.content,
+    isPartial: row.is_partial,
+    updatedAt: row.updated_at,
   }
 }

@@ -127,3 +127,67 @@ async def test_exhausted_account_rejects_402_pres_stream(monkeypatch: pytest.Mon
     payload = resp.json()
     assert payload["code"] == "free_tier_exhausted"
     assert payload["upgrade"] is True
+
+
+@pytest.mark.usefixtures("dsn")
+async def test_rate_limited_request_leaves_only_blocked_audit_row(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """T016 invariant: an over-limit device request is rejected 429 pre-stream,
+    writes no terminal/generation rows, and leaves exactly one
+    `rate_limit.blocked` audit row — with zero credit consumed. The device
+    counter is first brought to its threshold via the real gate primitive (a
+    committed bump), so the request crosses the limit."""
+    from orchestrator import config, gate, models
+
+    monkeypatch.setenv("DATABASE_URL", os.environ["DATABASE_URL"])
+    monkeypatch.setenv("FREE_TIER_LIMIT", "3")
+    monkeypatch.setenv("RATE_LIMIT_DEVICE_MAX", "1")
+    monkeypatch.setenv("RATE_LIMIT_IP_MAX", "100")
+    config._settings = None
+
+    from conftest import seed_account
+
+    with models.transaction() as conn:
+        acct = seed_account(conn, free_tier_limit=3, free_tier_count=0)
+        key = f"shared-{acct['account_id']}"
+        bumped = gate.bump_rate_limit(
+            conn,
+            tenant_id=acct["tenant_id"],
+            account_id=acct["account_id"],
+            kind="device",
+            scope_key=key,
+            window_seconds=60,
+            threshold=1,
+        )
+        assert bumped is True, "setup bump must bring the device to its threshold"
+        body = _body("a pirate memoir", device_key=key, client_ip_key=None)
+        body["accountRef"] = {
+            "tenantId": acct["tenant_id"],
+            "accountId": acct["account_id"],
+        }
+
+    async with await _client() as client:
+        resp = await client.post("/v1/generate", json=body, headers=_headers())
+
+    assert resp.status_code == 429
+    assert resp.json()["code"] == "rate_limited"
+    assert resp.headers["content-type"].startswith("application/json")
+
+    with models.transaction() as conn:
+        audit = models.fetchall(
+            conn.execute(
+                """SELECT action, status FROM audit_log
+                   WHERE tenant_id = %s AND account_id = %s
+                   ORDER BY timestamp""",
+                (acct["tenant_id"], acct["account_id"]),
+            )
+        )
+    assert audit == [
+        {"action": "rate_limit.blocked", "status": "blocked"}
+    ], "exactly one rate_limit.blocked audit row; nothing else may be stored"
+
+    with models.transaction() as conn:
+        row = models.get_account(conn, tenant_id=acct["tenant_id"], account_id=acct["account_id"])
+        assert row is not None
+        assert row["free_tier_count"] == 0, "over-limit request must consume no credit"
