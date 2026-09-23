@@ -69,9 +69,10 @@ CREATE TABLE content_versions (
 );
 
 -- Single-in-flight generation lease (FR-009, Clarification Q2).
--- The partial unique index is the live-lease: at most one row per
--- (account_id, kind) whose lock_expires_at is in the future. Expired leases
--- drop out of the uniqueness scope automatically, allowing a new insert.
+-- Plain unique index: at most one row per (account_id, kind). `now()` is
+-- STABLE so it cannot appear in an index predicate (IMMUTABLE required);
+-- expiry is handled by gate.acquire_lease deleting stale leases transactionally
+-- before its guarded insert, preserving "expired leases treat as free".
 CREATE TABLE run_states (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES tenants(id),
@@ -84,8 +85,7 @@ CREATE TABLE run_states (
     updated_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX run_states_live_lease_unique
-    ON run_states (account_id, kind)
-    WHERE lock_expires_at > now();
+    ON run_states (account_id, kind);
 
 -- One row per tool/agent invocation (shared spine, AGENTS.md §8).
 CREATE TABLE capability_invocations (

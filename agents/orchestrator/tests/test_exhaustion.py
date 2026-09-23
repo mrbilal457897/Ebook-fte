@@ -82,8 +82,8 @@ async def test_exhausted_account_402_no_model_work_no_rows(
             conn.execute(
                 """SELECT 1 FROM audit_log
                    WHERE tenant_id = %s AND account_id = %s
-                     AND action LIKE 'generation.%'""",
-                (acct["tenant_id"], acct["account_id"]),
+                     AND action LIKE %s""",
+                (acct["tenant_id"], acct["account_id"], "generation.%"),
             )
         )
         assert audit is None, "blocked attempt must not write a generation audit row"

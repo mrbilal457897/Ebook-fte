@@ -49,7 +49,9 @@ def test_four_concurrent_admits_exactly_three_succeed(dsn: str, db: Any) -> None
     admitted = _admitted(results)
 
     assert len(admitted) == 3, f"expected exactly 3 admits, got {len(admitted)}"
-    assert admitted == sorted(admitted), "returned counts must equal the written counts"
+    assert sorted(admitted) == [1, 2, 3], (
+        "returned counts must be exactly 1, 2, 3 (atomic increments, one per admit)"
+    )
 
     with db.cursor() as cur:
         cur.execute(

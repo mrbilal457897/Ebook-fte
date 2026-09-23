@@ -9,8 +9,8 @@ read-then-write window exists:
     the last credit). Refund path is a guarded decrement (`> 0`) and only
     ever called for provider/BYOK faults (Clarification Q1).
   - FR-009 in-flight lease: guarded `INSERT` into `run_states` backed by the
-    partial unique index `(account_id, kind) WHERE lock_expires_at > now()`;
-    expired leases leave the uniqueness scope and a new insert succeeds
+    unique index `(account_id, kind)`; stale (expired) leases are deleted in
+    the same transaction first, so a new insert succeeds over them
     (self-expiry, Clarification Q2).
   - FR-002 device/IP rate limits: atomic `INSERT ... ON CONFLICT ... DO
     UPDATE ... WHERE count < threshold RETURNING count` per
@@ -129,10 +129,20 @@ def acquire_lease(
 ) -> str | None:
     """Acquire the live lease or return `None` if one is already live.
 
-    The partial unique index `run_states_live_lease_unique` on
-    `(account_id, kind) WHERE lock_expires_at > now()` is the backstop against
-    the read-then-insert race; this guarded insert is the primary gate.
+    The unique index `run_states_live_lease_unique` on `(account_id, kind)`
+    is the backstop against the read-then-insert race; this guarded insert is
+    the primary gate. A stale (expired) lease is deleted transactionally first
+    so it never blocks a fresh acquire (Clarification Q2); live leases are
+    untouched and make the insert conflict.
     """
+    conn.execute(
+        """
+        DELETE FROM run_states
+        WHERE tenant_id = %s AND account_id = %s AND kind = %s
+          AND lock_expires_at <= now()
+        """,
+        (tenant_id, account_id, kind),
+    )
     row = _fetchone(
         conn.execute(
             """
@@ -141,7 +151,7 @@ def acquire_lease(
                  lock_expires_at, created_at, updated_at)
             SELECT %s, %s, %s, %s, 'running', %s,
                    now() + make_interval(secs => %s), now(), now()
-            ON CONFLICT (account_id, kind) WHERE lock_expires_at > now()
+            ON CONFLICT (account_id, kind)
             DO NOTHING
             RETURNING id
             """,

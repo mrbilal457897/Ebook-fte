@@ -318,7 +318,7 @@ def get_model_credential(
             SELECT id, provider, encrypted_key, last_status
             FROM model_credentials
             WHERE id = %s AND tenant_id = %s
-              AND (%s IS NULL OR account_id = %s)
+              AND (%s::uuid IS NULL OR account_id = %s)
             """,
             (credential_id, tenant_id, account_id, account_id),
         )

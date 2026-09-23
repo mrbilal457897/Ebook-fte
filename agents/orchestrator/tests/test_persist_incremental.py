@@ -114,11 +114,12 @@ def test_per_chunk_lease_renewal_extends_the_live_lease(
         )
         assert result.ctx is not None
         ctx = result.ctx
-        # Lease starts live ~1s.
+        # Lease starts live.
         live_before = models.get_live_lease(
             conn, tenant_id=ctx.tenant_id, account_id=ctx.account_id, kind="generation"
         )
         assert live_before is not None
+        expiry_before = live_before["lock_expires_at"]
 
     for chunk in ("a", "b", "c"):
         with models.transaction() as conn:
@@ -129,7 +130,7 @@ def test_per_chunk_lease_renewal_extends_the_live_lease(
                 account_id=ctx.account_id,
                 delta=chunk,
                 lease_id=ctx.lease_id,
-                lease_window_seconds=1,
+                lease_window_seconds=30,
             )
 
     with models.transaction() as conn:
@@ -137,3 +138,6 @@ def test_per_chunk_lease_renewal_extends_the_live_lease(
             conn, tenant_id=ctx.tenant_id, account_id=ctx.account_id, kind="generation"
         )
     assert live_after is not None, "lease must stay live across chunk writes"
+    assert live_after["lock_expires_at"] > expiry_before, (
+        "per-chunk renewal must extend the lease window forward"
+    )

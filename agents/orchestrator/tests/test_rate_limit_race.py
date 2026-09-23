@@ -105,7 +105,7 @@ def test_over_limit_leaves_single_window_row(db: Connection[Any], fresh_account:
     with db.cursor() as cur:
         cur.execute(
             """
-            SELECT count(*) AS n, count AS c
+            SELECT count(*) AS n, max(count) AS c
             FROM rate_limit_counts
             WHERE tenant_id = %s AND account_id = %s AND kind = 'device'
               AND scope_key = 'shared-key'
