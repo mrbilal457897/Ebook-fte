@@ -20,6 +20,22 @@ def _dsn() -> str:
     return os.environ.get("DATABASE_URL", "").strip()
 
 
+@pytest.fixture(autouse=True)
+def _platform_key_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Give `require_platform_key()` a value so admission-path tests can run
+    with no real provider credential in the environment.
+
+    The free-tier resolution path calls `config.Settings.require_platform_key()`
+    before the run reaches a model, and it refuses to return an empty key
+    (byok.py: no silent fallback, FR-008). Tests using `fake_llm.FakeLlm` never
+    contact a provider, so the key's *value* is irrelevant — only its presence
+    is. A placeholder is set only when the environment has none, so a real key
+    still wins and no test can ever silently rely on a bogus one.
+    """
+    if not os.environ.get("GOOGLE_API_KEY", "").strip():
+        monkeypatch.setenv("GOOGLE_API_KEY", "test-placeholder-not-a-real-key")
+
+
 @pytest.fixture(scope="session")
 def dsn() -> Iterator[str]:
     url = _dsn()

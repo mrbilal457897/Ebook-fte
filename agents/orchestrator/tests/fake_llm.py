@@ -76,12 +76,17 @@ class FailingLlm(BaseLlm):
         yield  # pragma: no cover - unreachable, makes this an async generator
 
 
-def fake_orchestrator(*, model: str | None = None) -> Any:
+def fake_orchestrator(*, model: str | None = None, streaming: bool = False) -> Any:
     """`build_orchestrator` replacement backed by `FakeLlm`.
 
     `sub_agents` is empty on purpose: these tests are about the Orchestrator's
     own admission/stream/persistence path, not about specialist routing (which
     test_composition.py and the live tests cover).
+
+    `streaming` is accepted and ignored so this replacement stays signature-
+    compatible with the real `build_orchestrator` (the `with_book_data_tools`
+    split, T103). Tests that must not accidentally couple to a new argument
+    should fail here loudly, not in production.
     """
     from orchestrator.instructions import ORCHESTRATOR_INSTRUCTIONS
 
@@ -94,8 +99,12 @@ def fake_orchestrator(*, model: str | None = None) -> Any:
     )
 
 
-def failing_orchestrator(*, model: str | None = None) -> Any:
-    """`build_orchestrator` replacement whose model always fails."""
+def failing_orchestrator(*, model: str | None = None, streaming: bool = False) -> Any:
+    """`build_orchestrator` replacement whose model always fails.
+
+    Signature-compatible with the real `build_orchestrator` (see
+    `fake_orchestrator`).
+    """
     from orchestrator.instructions import ORCHESTRATOR_INSTRUCTIONS
 
     return LlmAgent(

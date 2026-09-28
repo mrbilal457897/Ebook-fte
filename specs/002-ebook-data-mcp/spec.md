@@ -156,3 +156,60 @@ the `CHECK` constraints the tool error messages assume
 (`target_format IN ('epub','mobi','pdf')`, the four platforms, and the
 `formatting_jobs` / `publishing_records` status sets). Apply before running
 the server or its tests.
+
+## 7. T101 — Orchestrator's direct-DB path: a recorded exception
+
+**Decided 2026-09-28 by the project owner, delegated to implementation under
+"finish the remaining work".** This section exists so the deviation is a
+sanctioned decision with a stated boundary, not an unremarked exception.
+
+### 7.1 The rule this server exists to enforce
+
+Shared book data is reached **through this server**, not by direct SQL from an
+agent. The Orchestrator is currently the only MCP client and it reaches the
+database directly, which is a deviation from that rule. This section narrows
+it to exactly one boundary and forbids everything else.
+
+### 7.2 The exception: lease-coupled streaming writes
+
+`agents/orchestrator/src/orchestrator/persistence.py` keeps direct DB access for
+**the three transaction shapes only**:
+
+| Shape | Why it cannot move behind an HTTP hop |
+|---|---|
+| `persist_chunk` | Appends one streamed delta **and renews the in-flight lease in the same committed transaction**, once per chunk, *before* the `token` event reaches the UI. Atomicity between the content row and the lease row is the mechanism FR-005 depends on. |
+| `finalize_generation` | Flips `is_partial=false`, writes one `capability_invocations` + one `audit_log` row, **and releases the lease** in one transaction (FR-006/AC5). |
+| `fail_generation` | Refunds the consumed free-tier credit, writes the `generation.failed` audit row, **and releases the lease** in one transaction. |
+
+The reason is not convenience. `save_content_version` is a whole-content,
+single-shot write; it cannot express "append this delta" and, more importantly,
+it runs in a *different process and a different transaction* from the lease
+row. Routing one streamed chunk through HTTP would (a) add a network round trip
+to every token, and (b) break the exact invariant AC4 depends on — that
+whatever the UI has shown is already committed together with a live lease.
+
+### 7.3 What this forbids
+
+- The Orchestrator must not use its direct connection for **any** book-data
+  read or write outside those three shapes. No listing books, no reading
+  content, no cover/formatting/publishing records.
+- No new direct-SQL call may be added to `persistence.py` without updating this
+  section first.
+- The three shapes must stay minimal and must not grow a "general" branch.
+
+### 7.4 Everything else goes through MCP
+
+The Content Agent reaches `content_versions` through `save_content_version`; the
+Cover Design, Formatting, and Publishing Advisor agents reach their tables only
+through this server. `tenant_id`/`account_id` are derived from the authenticated
+session at the HTTP boundary and passed in — never read from model output
+(Constitution Article IV.5).
+
+### 7.5 The spec-procedure gap
+
+`research.md` and `plan.md` were never authored for this slice; the spec was
+ratified inline on 2026-09-21 and the server built directly from it (recorded as
+a prerequisite note in `tasks.md`). This section closes the *substantive* half
+of that gap — the architectural question is now answered in writing. The
+procedural half stands: a future slice that follows the full
+research → spec → plan sequence should not inherit this shortcut.

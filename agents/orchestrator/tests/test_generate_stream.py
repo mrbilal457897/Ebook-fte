@@ -24,7 +24,6 @@ import pytest
 from fake_llm import failing_orchestrator as _failing_orchestrator
 from fake_llm import fake_orchestrator as _fake_orchestrator
 from fastapi.testclient import TestClient
-from starlette.responses import Response
 
 from orchestrator import config, gate, models, stream
 from orchestrator.server import app
@@ -205,7 +204,7 @@ def test_stream_discipline_headers(
     service will coalesce the whole stream and destroy first-token latency, so
     the header is part of the contract, not an optimisation.
     """
-    res: Response = _post(fresh_account)
+    res = _post(fresh_account)
     assert res.status_code == 200
     assert res.headers["content-type"].startswith("text/event-stream")
     assert res.headers["cache-control"] == "no-cache, no-transform"

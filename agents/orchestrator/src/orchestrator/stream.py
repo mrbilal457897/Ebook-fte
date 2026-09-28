@@ -59,7 +59,7 @@ async def stream_generation(
         app_name="orchestrator", user_id=account_id, session_id=conversation_id
     )
     runner = Runner(
-        agent=build_orchestrator(model=model),
+        agent=build_orchestrator(model=model, streaming=True),
         app_name="orchestrator",
         session_service=session_service,
     )
