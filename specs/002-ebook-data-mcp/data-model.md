@@ -6,9 +6,9 @@ only (a) the assumed columns used by the 8 tools, and (b) the three tables not
 yet defined in slice 001: `cover_assets`, `formatting_jobs`,
 `publishing_records`.
 
-**Status**: schema assumptions ratified inline (2026-09-21). Migrations for
-`cover_assets`/`formatting_jobs`/`publishing_records` are **not** authored here
-— that is a separate task with its own slice.
+**Status**: schema assumptions ratified inline (2026-09-21). The three tables
+below shipped in `db/migrations/0003_ebook_data_mcp_tables.sql` on
+2026-09-26 — that was the "separate task with its own slice" deferred here.
 
 ## Shared tables used (defined in slice 001)
 
@@ -20,7 +20,7 @@ yet defined in slice 001: `cover_assets`, `formatting_jobs`,
 - `audit_log` — id, tenant_id, account_id, agent, action, inputs (jsonb),
   output (jsonb), timestamp, status.
 
-## Tables assumed (not yet migrated — flagged to the owner)
+## Tables assumed (migrated in `0003`, 2026-09-26)
 
 ### `cover_assets`
 
@@ -31,7 +31,7 @@ yet defined in slice 001: `cover_assets`, `formatting_jobs`,
 | `tenant_id` | uuid FK → tenants | |
 | `account_id` | uuid FK → accounts | |
 | `image_ref` | text | storage reference for the generated image |
-| `is_selected` | boolean default false | at most one true per book (tool 3 enforces in-transaction) |
+| `is_selected` | boolean default false | at most one true per book — tool 3 enforces it in-transaction; `0003` adds a partial unique index on `(book_id) WHERE is_selected` as a backstop |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 

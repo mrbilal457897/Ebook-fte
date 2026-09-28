@@ -298,7 +298,7 @@ def run_formatting_job(
                   WHERE cv.id = %s AND cv.book_id = b.id
                     AND cv.tenant_id = b.tenant_id AND cv.account_id = b.account_id
               )
-              AND (%s IS NULL OR EXISTS (
+              AND (%s::uuid IS NULL OR EXISTS (
                   SELECT 1 FROM cover_assets ca
                   WHERE ca.id = %s AND ca.book_id = b.id
                     AND ca.tenant_id = b.tenant_id AND ca.account_id = b.account_id

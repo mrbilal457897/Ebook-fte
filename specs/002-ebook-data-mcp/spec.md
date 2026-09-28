@@ -103,20 +103,56 @@ account/tenant, or a "not found" error.
 
 ## 5. Acceptance criteria
 
-- [ ] All 8 tools exposed; listing tools shows exactly those 8 names.
-- [ ] Every tool requires `tenant_id` + `account_id`; malformed uuids rejected.
-- [ ] Write tools create audit + invocation rows in the same transaction
+Verified 2026-09-26 against real Postgres (Neon) — 31 DB-backed tests in
+`mcp-servers/ebook-data/tests/test_tools.py`, one per criterion, named
+`test_ac<N>_…` so spec and suite stay traceable. `ruff` + `pyright` green.
+
+- [x] All 8 tools exposed; listing tools shows exactly those 8 names.
+      (`test_ac1_exactly_eight_tools_registered`,
+      `test_ac1_server_registers_no_broader_surface` — asserts against
+      `server.list_tools()`, not the local `TOOLS` list.)
+- [x] Every tool requires `tenant_id` + `account_id`; malformed uuids rejected
+      before any SQL runs (proven by an unchanged `capability_invocations`
+      count). (`test_ac2_*`)
+- [x] Write tools create audit + invocation rows in the same transaction
       (verified under a rolled-back write: no orphan rows).
-- [ ] `save_content_version` never updates an existing row (additive).
-- [ ] `save_cover_asset(is_selected=true)` leaves exactly one selected asset
-      per book.
-- [ ] `get_formatting_job_status` on a job from another tenant raises
-      "not found".
-- [ ] `create_publishing_record` performs no external call.
-- [ ] `ruff` + `pyright` green.
+      (`test_ac3_*`, `test_ac3_rolled_back_write_leaves_no_orphan_rows`)
+- [x] `save_content_version` never updates an existing row (additive).
+      (`test_ac4_save_content_version_is_additive_only`)
+- [x] `save_cover_asset(is_selected=true)` leaves exactly one selected asset
+      per book. (`test_ac5_*`; a partial unique index on `cover_assets`
+      backstops the tool's transactional unset — see migration `0003`.)
+- [x] `get_formatting_job_status` on a job from another tenant raises
+      "not found". (`test_ac6_foreign_job_id_raises_not_found`; a guessed
+      uuid is indistinguishable from a nonexistent one.)
+- [x] `create_publishing_record` performs no external call. (`test_ac7_*` —
+      an AST sweep of the package proves no network client is imported, and
+      `socket.socket` is monkeypatched to fail during the call.)
+- [x] `ruff` + `pyright` green.
+
+### 5.1 Fixed during verification
+
+- `run_formatting_job` used `(%s IS NULL OR EXISTS …)`. A parameter used only
+  in an `IS NULL` test has no type context, so Postgres rejected it with
+  `IndeterminateDatatype` (the same class of bug the Orchestrator hit in
+  `byok.py`). Fixed with an explicit `%s::uuid` cast. The mocked suite could
+  never have caught this — only a real database did.
+- `get_cover_assets` returns `[]` for a foreign book rather than raising. That
+  is the specified behaviour for a filtered list (§4 tool 4), and it leaks
+  nothing; the test asserts the empty list explicitly so the distinction from
+  the single-row lookups (which raise) stays deliberate.
 
 ## 6. Runtime
 
 `DATABASE_URL` required. Host/port/pool via `EBOOK_DATA_HOST`,
 `EBOOK_DATA_PORT`, `EBOOK_DATA_POOL_MIN/MAX`. Run:
 `uv run ebook-data` (or `uv run python -m ebook_data.server`).
+
+### 6.1 Schema dependency (resolved)
+
+The three tables in `data-model.md` §"Tables assumed" shipped in
+`db/migrations/0003_ebook_data_mcp_tables.sql` (2026-09-26), which also adds
+the `CHECK` constraints the tool error messages assume
+(`target_format IN ('epub','mobi','pdf')`, the four platforms, and the
+`formatting_jobs` / `publishing_records` status sets). Apply before running
+the server or its tests.
