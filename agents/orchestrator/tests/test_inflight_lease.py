@@ -10,17 +10,17 @@ lease self-expires a new request is accepted. DB-backed (skip without
 """
 
 
-import os
 from typing import Any
 
 import httpx
 import pytest
 from conftest import seed_account
+from fake_llm import fake_orchestrator as _fake_orchestrator
 from httpx import ASGITransport
 from psycopg import Connection
 from psycopg.rows import dict_row
 
-from orchestrator import config, gate, models, server
+from orchestrator import config, gate, models, server, stream
 from orchestrator.models import release_lease, renew_lease
 
 WINDOW = 60
@@ -217,17 +217,19 @@ async def test_second_generation_while_first_live_is_409_not_parallel(
 
 
 @pytest.mark.anyio
-@pytest.mark.skipif(
-    not os.environ.get("GOOGLE_API_KEY"),
-    reason="needs GOOGLE_API_KEY: admitted request streams from the platform model",
-)
 @pytest.mark.usefixtures("dsn")
 async def test_after_lease_self_expiry_new_request_is_accepted(
     dsn: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """After the stale lease expires (no terminal event), a fresh request is
-    admitted and reaches the streaming response (FR-009, Edge Case)."""
+    admitted and reaches the streaming response (FR-009, Edge Case).
+
+    The claim under test is *admission*, so the model is a deterministic
+    in-process fake (tests/fake_llm.py): a live provider added nothing here
+    except quota dependence and a slow, flaky test.
+    """
     monkeypatch.setenv("DATABASE_URL", dsn)
+    monkeypatch.setattr(stream, "build_orchestrator", _fake_orchestrator)
     config._settings = None
     models._pool = None
 
@@ -250,5 +252,15 @@ async def test_after_lease_self_expiry_new_request_is_accepted(
         resp = await client.post(
             "/v1/generate", json=_gen_body(acct, 3), headers={"X-Internal-Token": INTERNAL_TOKEN}
         )
-    assert resp.status_code == 200
+    assert resp.status_code == 200, "an expired lease must be treated as free, not 409"
     assert resp.headers["content-type"].startswith("text/event-stream")
+    assert "event: token" in resp.text
+    assert "event: version" in resp.text
+    assert '"isPartial":false' in resp.text
+    with models.transaction() as conn:
+        assert not gate.lease_is_live(
+            conn,
+            tenant_id=acct["tenant_id"],
+            account_id=acct["account_id"],
+            kind="generation",
+        ), "the terminal event must release the lease"
