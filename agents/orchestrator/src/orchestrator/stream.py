@@ -14,6 +14,7 @@ commit that fails propagates into the `error` path instead of after the
 customer already saw the token.
 """
 
+import inspect
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
@@ -32,6 +33,22 @@ def _event_text(event: Any) -> str:
     return "".join(part.text or "" for part in event.content.parts)
 
 
+async def _invoke(hook: Callable[[Any], Any] | None, arg: Any) -> None:
+    """Call an `on_*` hook and await it when it is async.
+
+    `server.py` supplies async hooks that commit on a worker thread
+    (dbexec.run_blocking); tests supply plain callables. Both are supported, and
+    an awaitable result is always awaited before the corresponding event is
+    yielded, so FR-005's "commit before the customer sees the token" holds for
+    either shape.
+    """
+    if hook is None:
+        return
+    result = hook(arg)
+    if inspect.isawaitable(result):
+        await result
+
+
 async def stream_generation(
     *,
     tenant_id: str,
@@ -41,9 +58,9 @@ async def stream_generation(
     version_id: str,
     prompt: str,
     model: str | None = None,
-    on_token: Callable[[str], None] | None = None,
-    on_terminal: Callable[[str], None] | None = None,
-    on_failure: Callable[[str], None] | None = None,
+    on_token: Callable[[str], Any] | None = None,
+    on_terminal: Callable[[str], Any] | None = None,
+    on_failure: Callable[[str], Any] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Run the Orchestrator agent and yield `token` / `version` / `error` dicts.
 
@@ -53,6 +70,8 @@ async def stream_generation(
     `on_token`/`on_terminal` hook aborts the run and yields the `error` event
     instead; `on_failure` is invoked before `error` so the server can refund
     + audit + release the lease.
+
+    Hooks may be sync or async; see `_invoke`.
     """
     session_service = InMemorySessionService()
     await session_service.create_session(
@@ -79,7 +98,7 @@ async def stream_generation(
                 if not delta:
                     continue
                 if on_token is not None:
-                    on_token(delta)
+                    await _invoke(on_token, delta)
                 full_text.append(delta)
                 yield {"event": "token", "data": {"delta": delta}}
             elif not event.partial and event.turn_complete:
@@ -87,7 +106,7 @@ async def stream_generation(
                 if not full:
                     continue
                 if on_terminal is not None:
-                    on_terminal(full)
+                    await _invoke(on_terminal, full)
                 yield {
                     "event": "version",
                     "data": {
@@ -102,7 +121,7 @@ async def stream_generation(
     except Exception as exc:  # noqa: BLE001 - any provider/transport fault maps to an error event
         code = "provider_error"
         if on_failure is not None:
-            on_failure(code)
+            await _invoke(on_failure, code)
         yield {
             "event": "error",
             "data": {

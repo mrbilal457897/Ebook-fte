@@ -31,6 +31,12 @@ def _headers() -> dict[str, str]:
     return {"X-Internal-Token": "test-secret"}
 
 
+def _platform() -> byok.ResolvedModel:
+    return byok.ResolvedModel(
+        provider="platform", api_key="platform-key", model="gemini-flash-latest"
+    )
+
+
 def _body(prompt: str = "a pirate memoir") -> dict:
     return {
         "prompt": prompt,
@@ -46,23 +52,32 @@ def test_endpoint_plumbs_stream_to_sse(
 ) -> None:
     """Hermetic wiring: admitted + resolved request streams token/version
     frames with the exact wire format (no DB, no live model — the ADK and
-    persistence seams are faked)."""
-    monkeypatch.setattr(server_mod, "_admit_request", lambda req, prompt: _ctx())
+    persistence seams are faked).
 
-    platform = byok.ResolvedModel(
-        provider="platform", api_key="platform-key", model="gemini-flash-latest"
-    )
-    monkeypatch.setattr(server_mod, "_resolve_model_or_refund", lambda req, ctx: platform)
+    `_admit_request` is async (it commits on a worker thread, dbexec.py) and
+    now returns `(ctx, resolved)` as one pair, so its fake is async too — a
+    sync fake here would be awaited and fail with a `TypeError` that says
+    nothing about the wiring under test."""
+
+    async def fake_admit(
+        req: object, prompt: str
+    ) -> tuple[gate.GenerationContext, byok.ResolvedModel]:
+        return (_ctx(), _platform())
+
+    monkeypatch.setattr(server_mod, "_admit_request", fake_admit)
 
     async def fake_stream(**kwargs: object):
         on_token = kwargs.get("on_token")
         on_terminal = kwargs.get("on_terminal")
         assert callable(on_token) and callable(on_terminal)
-        on_token("Ahoy ")  # type: ignore[operator]  # hooks are callables
+        # The real hooks are async (worker-thread commit); awaiting them here
+        # keeps the assertion below meaningful instead of passing on a
+        # never-awaited coroutine.
+        await on_token("Ahoy ")  # type: ignore[operator]
         yield {"event": "token", "data": {"delta": "Ahoy "}}
-        on_token("there!")  # type: ignore[operator]
+        await on_token("there!")  # type: ignore[operator]
         yield {"event": "token", "data": {"delta": "there!"}}
-        on_terminal("Ahoy there!")  # type: ignore[operator]
+        await on_terminal("Ahoy there!")  # type: ignore[operator]
         yield {
             "event": "version",
             "data": {
@@ -106,8 +121,13 @@ def test_unresolvable_byok_emits_terminal_error_event(
     """Hermetic wiring: an invalid BYOK credential (resolution returns None)
     yields exactly one terminal `error` event `{code:"byok_invalid",
     refunded:true}` — never a silently-platform-key stream (FR-008/AC7)."""
-    monkeypatch.setattr(server_mod, "_admit_request", lambda req, prompt: _ctx())
-    monkeypatch.setattr(server_mod, "_resolve_model_or_refund", lambda req, ctx: None)
+
+    async def fake_admit(
+        req: object, prompt: str
+    ) -> tuple[gate.GenerationContext, byok.ResolvedModel] | None:
+        return None  # credential dead: credit already refunded inside admission
+
+    monkeypatch.setattr(server_mod, "_admit_request", fake_admit)
 
     client = TestClient(app)
     res = client.post(

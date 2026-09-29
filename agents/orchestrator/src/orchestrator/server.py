@@ -18,6 +18,7 @@ import json
 import secrets
 import time
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import Depends, FastAPI, Request
@@ -25,11 +26,23 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from orchestrator import byok, config, gate, models, persistence
+from orchestrator.dbexec import run_blocking
 from orchestrator.stream import stream_generation
+from orchestrator.warmup import warm_adk, warmup_enabled
 
 MAX_PROMPT_CHARS = 20_000
 
-app = FastAPI(title="E-book FTE Orchestrator", version="0.1.0")
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Pay ADK's ~0.8 s cold-start cost at boot, not on a customer's first
+    request (FR-004's 2 s budget). See warmup.py for the measurement."""
+    if warmup_enabled():
+        await warm_adk()
+    yield
+
+
+app = FastAPI(title="E-book FTE Orchestrator", version="0.1.0", lifespan=_lifespan)
 
 SSE_HEADERS = {
     "Content-Type": "text/event-stream",
@@ -119,79 +132,100 @@ def _record_rate_limit_blocked(req: GenerateRequest) -> None:
         )
 
 
-def _admit_request(
+async def _admit_request(
     req: GenerateRequest, prompt: str
-) -> gate.GenerationContext:
+) -> tuple[gate.GenerationContext, byok.ResolvedModel] | None:
+    """Admission + BYOK resolution in ONE transaction, on a worker thread.
+
+    These used to be two sequential transactions. They are now one because
+    both sit on the critical path to the first streamed token, and against a
+    remote database one round trip costs 0.4-0.9 s (measured in T046) — so the
+    second transaction was a full extra round trip of dead time before the
+    customer saw a single word.
+
+    Merging them is also strictly safer, not just faster: a dead BYOK
+    credential is now detected in the same transaction that consumed the
+    free-tier credit, so `fail_generation` refunds it in the same commit
+    instead of a second one that could fail independently and leave the credit
+    consumed (FR-008, AC7/T027).
+
+    Returns `(ctx, resolved_model)`, or `None` when the credential was invalid
+    or unwired — in which case the credit is already refunded, audited, and the
+    lease released, so the endpoint only has to emit the terminal `error` event.
+    """
     s = config.get_settings()
-    with models.transaction() as conn:
-        result = gate.admit_generation(
-            conn,
-            tenant_id=req.accountRef.tenantId,
-            account_id=req.accountRef.accountId,
-            free_tier_limit=s.free_tier_limit,
-            prompt=prompt,
-            device_key=req.rateLimitContext.deviceKey,
-            client_ip_key=req.rateLimitContext.clientIpKey,
-            rate_limit_device_max=s.rate_limit_device_max,
-            rate_limit_ip_max=s.rate_limit_ip_max,
-            rate_limit_window_seconds=s.rate_limit_window_seconds,
-            lease_window_seconds=s.lease_window_seconds,
-        )
-        if result.reject_reason is not None:
-            status, body = _REJECT_BODIES[result.reject_reason]
-            # Admission tx rolls back on reject (nothing stored there); the
-            # over-limit case must still be auditable (T016: "only a
-            # rate_limit.blocked audit row") in its own committed txn.
-            if result.reject_reason == "rate_limited":
-                _record_rate_limit_blocked(req)
-            raise Rejection(status, body)
-        assert result.ctx is not None
-        return result.ctx
 
-
-def _resolve_model_or_refund(
-    req: GenerateRequest, ctx: gate.GenerationContext
-) -> byok.ResolvedModel | None:
-    """Resolve the model pre-stream. On an invalid/unwired BYOK credential:
-    refund the consumed free credit, audit, release the lease, and return
-    `None` so the endpoint can emit the terminal `error` event (FR-008,
-    AC7/T027). Resolution happens in its own committed transaction."""
-    try:
-        with models.transaction() as conn:
-            resolved = byok.resolve_generation_model(
-                conn,
-                tenant_id=ctx.tenant_id,
-                account_id=ctx.account_id,
-                credential_id=req.modelCredentialId,
-            )
-            if resolved is None:
-                persistence.fail_generation(
+    def _admit_and_resolve() -> tuple[gate.GenerationContext, byok.ResolvedModel] | None:
+        try:
+            # The `Rejection` is raised *inside* the transaction on purpose: a
+            # rejected request must consume nothing, and `models.transaction()`
+            # only rolls back on an exception. Deciding the rejection outside
+            # the block would commit the free-tier increment from
+            # `admit_generation`, which runs before the lease check.
+            with models.transaction() as conn:
+                result = gate.admit_generation(
                     conn,
-                    tenant_id=ctx.tenant_id,
-                    account_id=ctx.account_id,
-                    lease_id=ctx.lease_id,
-                    agent="orchestrator",
-                    inputs={"prompt": req.prompt},
-                    output={"error": "byok_invalid"},
-                    refund=True,
+                    tenant_id=req.accountRef.tenantId,
+                    account_id=req.accountRef.accountId,
+                    free_tier_limit=s.free_tier_limit,
+                    prompt=prompt,
+                    device_key=req.rateLimitContext.deviceKey,
+                    client_ip_key=req.rateLimitContext.clientIpKey,
+                    rate_limit_device_max=s.rate_limit_device_max,
+                    rate_limit_ip_max=s.rate_limit_ip_max,
+                    rate_limit_window_seconds=s.rate_limit_window_seconds,
+                    lease_window_seconds=s.lease_window_seconds,
                 )
-                return None
-            # Live BYOK adapter check — invalid/unwired provider refunds too.
-            byok.get_model_adapter(resolved)
-            return resolved
-    except NotImplementedError:
-        with models.transaction() as conn:
-            persistence.fail_generation(
-                conn,
-                tenant_id=ctx.tenant_id,
-                account_id=ctx.account_id,
-                lease_id=ctx.lease_id,
-                agent="orchestrator",
-                inputs={"prompt": req.prompt},
-                output={"error": "byok_not_wired"},
-                refund=True,
-            )
-        return None
+                if result.reject_reason is not None:
+                    raise Rejection(*_REJECT_BODIES[result.reject_reason])
+                assert result.ctx is not None
+                ctx = result.ctx
+
+                def _fail(code: str) -> None:
+                    persistence.fail_generation(
+                        conn,
+                        tenant_id=ctx.tenant_id,
+                        account_id=ctx.account_id,
+                        lease_id=ctx.lease_id,
+                        agent="orchestrator",
+                        inputs={"prompt": req.prompt},
+                        output={"error": code},
+                        refund=True,
+                    )
+
+                try:
+                    resolved = byok.resolve_generation_model(
+                        conn,
+                        tenant_id=ctx.tenant_id,
+                        account_id=ctx.account_id,
+                        credential_id=req.modelCredentialId,
+                    )
+                except NotImplementedError:
+                    _fail("byok_not_wired")
+                    return None
+
+                if resolved is None:
+                    _fail("byok_invalid")
+                    return None
+
+                # Live BYOK adapter check — invalid/unwired provider refunds too.
+                try:
+                    byok.get_model_adapter(resolved)
+                except NotImplementedError:
+                    _fail("byok_not_wired")
+                    return None
+
+                return (ctx, resolved)
+        except Rejection as rejection:
+            # The admission txn rolled back, so the over-limit case must still
+            # be auditable (T016: "only a rate_limit.blocked audit row") in its
+            # own committed txn.
+            if rejection.body.get("code") == "rate_limited":
+                _record_rate_limit_blocked(req)
+            raise
+
+    admitted = await run_blocking(_admit_and_resolve)
+    return admitted
 
 
 @app.post("/v1/generate")
@@ -203,64 +237,74 @@ async def generate(
         raise Rejection(*_REJECT_BODIES["invalid_prompt"])
 
     s = config.get_settings()
-    ctx = _admit_request(req, prompt)
-
-    resolved = _resolve_model_or_refund(req, ctx)
-    if resolved is None:
+    admitted = await _admit_request(req, prompt)
+    if admitted is None:
         async def err_only() -> AsyncIterator[str]:
             yield _sse("error", {"code": "byok_invalid", "message": "BYOK credential is invalid", "refunded": True})
 
         return StreamingResponse(err_only(), media_type="text/event-stream", headers=SSE_HEADERS)
 
+    ctx, resolved = admitted
+
     started = time.perf_counter()
     persisted_any = False
 
-    def _persist_chunk(delta: str) -> None:
+    async def _persist_chunk(delta: str) -> None:
         nonlocal persisted_any
-        with models.transaction() as conn:
-            persistence.persist_chunk(
-                conn,
-                version_id=ctx.version_id,
-                tenant_id=ctx.tenant_id,
-                account_id=ctx.account_id,
-                delta=delta,
-                lease_id=ctx.lease_id,
-                lease_window_seconds=s.lease_window_seconds,
-            )
+
+        def _commit() -> None:
+            with models.transaction() as conn:
+                persistence.persist_chunk(
+                    conn,
+                    version_id=ctx.version_id,
+                    tenant_id=ctx.tenant_id,
+                    account_id=ctx.account_id,
+                    delta=delta,
+                    lease_id=ctx.lease_id,
+                    lease_window_seconds=s.lease_window_seconds,
+                )
+
+        await run_blocking(_commit)
         persisted_any = True
 
-    def _finalize(full: str) -> None:
-        with models.transaction() as conn:
-            persistence.finalize_generation(
-                conn,
-                version_id=ctx.version_id,
-                tenant_id=ctx.tenant_id,
-                account_id=ctx.account_id,
-                lease_id=ctx.lease_id,
-                agent="orchestrator",
-                inputs={"prompt": req.prompt, "conversation_id": ctx.conversation_id},
-                output={
-                    "versionId": ctx.version_id,
-                    "bookId": ctx.book_id,
-                    "isPartial": False,
-                    "fullText": full,
-                },
-                latency_ms=models.latency_ms(started),
-                success=True,
-            )
+    async def _finalize(full: str) -> None:
+        def _commit() -> None:
+            with models.transaction() as conn:
+                persistence.finalize_generation(
+                    conn,
+                    version_id=ctx.version_id,
+                    tenant_id=ctx.tenant_id,
+                    account_id=ctx.account_id,
+                    lease_id=ctx.lease_id,
+                    agent="orchestrator",
+                    inputs={"prompt": req.prompt, "conversation_id": ctx.conversation_id},
+                    output={
+                        "versionId": ctx.version_id,
+                        "bookId": ctx.book_id,
+                        "isPartial": False,
+                        "fullText": full,
+                    },
+                    latency_ms=models.latency_ms(started),
+                    success=True,
+                )
 
-    def _fail(code: str) -> None:
-        with models.transaction() as conn:
-            persistence.fail_generation(
-                conn,
-                tenant_id=ctx.tenant_id,
-                account_id=ctx.account_id,
-                lease_id=ctx.lease_id,
-                agent="orchestrator",
-                inputs={"prompt": req.prompt},
-                output={"error": code},
-                refund=not persisted_any,
-            )
+        await run_blocking(_commit)
+
+    async def _fail(code: str) -> None:
+        def _commit() -> None:
+            with models.transaction() as conn:
+                persistence.fail_generation(
+                    conn,
+                    tenant_id=ctx.tenant_id,
+                    account_id=ctx.account_id,
+                    lease_id=ctx.lease_id,
+                    agent="orchestrator",
+                    inputs={"prompt": req.prompt},
+                    output={"error": code},
+                    refund=not persisted_any,
+                )
+
+        await run_blocking(_commit)
 
     async def sse() -> AsyncIterator[str]:
         async for payload in stream_generation(
