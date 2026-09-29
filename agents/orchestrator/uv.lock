@@ -334,6 +334,28 @@ dev = [
 ]
 
 [[package]]
+name = "cover-design-agent"
+version = "0.1.0"
+source = { editable = "../cover-design-agent" }
+dependencies = [
+    { name = "google-adk" },
+    { name = "mcp" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-adk", specifier = "==2.9.2" },
+    { name = "mcp", specifier = "==2.2.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.414" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.16.8" },
+]
+
+[[package]]
 name = "cryptography"
 version = "50.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -406,6 +428,28 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/22/6f/0eafed8349eea1fa462238b54a624c8b408cd1ba2795c8e64aa6c34f8ab7/fastapi-0.133.1.tar.gz", hash = "sha256:ed152a45912f102592976fde6cbce7dae1a8a1053da94202e51dd35d184fadd6", size = 378741, upload-time = "2026-02-25T18:18:17.398Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/c9/a175a7779f3599dfa4adfc97a6ce0e157237b3d7941538604aadaf97bfb6/fastapi-0.133.1-py3-none-any.whl", hash = "sha256:658f34ba334605b1617a65adf2ea6461901bdb9af3a3080d63ff791ecf7dc2e2", size = 109029, upload-time = "2026-02-25T18:18:18.578Z" },
+]
+
+[[package]]
+name = "formatting-agent"
+version = "0.1.0"
+source = { editable = "../formatting-agent" }
+dependencies = [
+    { name = "google-adk" },
+    { name = "mcp" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-adk", specifier = "==2.9.2" },
+    { name = "mcp", specifier = "==2.2.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.414" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.16.8" },
 ]
 
 [[package]]
@@ -718,11 +762,14 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "content-agent" },
+    { name = "cover-design-agent" },
     { name = "fastapi" },
+    { name = "formatting-agent" },
     { name = "google-adk" },
     { name = "mcp" },
     { name = "psycopg", extra = ["binary"] },
     { name = "psycopg-pool" },
+    { name = "publishing-advisor-agent" },
     { name = "uvicorn" },
 ]
 
@@ -737,11 +784,14 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "content-agent", editable = "../content-agent" },
+    { name = "cover-design-agent", editable = "../cover-design-agent" },
     { name = "fastapi", specifier = "==0.133.1" },
+    { name = "formatting-agent", editable = "../formatting-agent" },
     { name = "google-adk", specifier = "==2.9.2" },
     { name = "mcp", specifier = "==2.2.0" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
     { name = "psycopg-pool", specifier = "==3.3.2" },
+    { name = "publishing-advisor-agent", editable = "../publishing-advisor-agent" },
     { name = "uvicorn", specifier = "==0.34.2" },
 ]
 
@@ -850,6 +900,28 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f9/7f/1e54512e817442017efa6f7b4c663bc769abd3ff2b62adb910190fc4731d/psycopg_pool-3.3.2.tar.gz", hash = "sha256:0c70903c7f50cd7173ef0f6364bb7c9271fa3810f5746e058449a77afe579f49", size = 31912, upload-time = "2026-09-18T13:22:59.127Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/39/7dd00f3570b8847b20da54c98c9388b166967625723bc36dd01e1ab1d64f/psycopg_pool-3.3.2-py3-none-any.whl", hash = "sha256:96971f245eee54f1632d8eaae0de5bb6e9c624c1effdd42d8d6843e534f56e07", size = 40224, upload-time = "2026-09-18T13:22:53.384Z" },
+]
+
+[[package]]
+name = "publishing-advisor-agent"
+version = "0.1.0"
+source = { editable = "../publishing-advisor-agent" }
+dependencies = [
+    { name = "google-adk" },
+    { name = "mcp" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-adk", specifier = "==2.9.2" },
+    { name = "mcp", specifier = "==2.2.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.414" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.16.8" },
 ]
 
 [[package]]

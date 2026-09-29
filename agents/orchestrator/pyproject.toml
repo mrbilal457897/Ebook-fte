@@ -9,16 +9,22 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "content-agent",
+    "cover-design-agent",
     "fastapi==0.133.1",
+    "formatting-agent",
     "google-adk==2.9.2",
     "mcp==2.2.0",
     "psycopg-pool==3.3.2",
     "psycopg[binary]==3.3.6",
+    "publishing-advisor-agent",
     "uvicorn==0.34.2",
 ]
 
 [tool.uv.sources]
 content-agent = { path = "../content-agent", editable = true }
+cover-design-agent = { path = "../cover-design-agent", editable = true }
+formatting-agent = { path = "../formatting-agent", editable = true }
+publishing-advisor-agent = { path = "../publishing-advisor-agent", editable = true }
 
 [project.scripts]
 orchestrator = "orchestrator:main"
