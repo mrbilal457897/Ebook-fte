@@ -38,14 +38,14 @@ def test_dead_credential_fails_cleanly_refunded_no_fallback(
         "conversationId": "conv-byok",
         "rateLimitContext": {"deviceKey": "d" * 64, "clientIpKey": None},
     }
-    res = TestClient(app).post(
-        "/v1/generate", json=body, headers={"X-Internal-Token": "test-secret"}
-    )
-
-    assert res.status_code == 200
-    assert 'event: error' in res.text
-    assert '"code":"byok_invalid"' in res.text
-    assert '"refunded":true' in res.text
+    with TestClient(app) as client:
+        res = client.post(
+            "/v1/generate", json=body, headers={"X-Internal-Token": "test-secret"}
+        )
+        assert res.status_code == 200
+        assert 'event: error' in res.text
+        assert '"code":"byok_invalid"' in res.text
+        assert '"refunded":true' in res.text
 
     with models.transaction() as conn:
         row = models.get_account(conn, tenant_id=tenant_id, account_id=account_id)

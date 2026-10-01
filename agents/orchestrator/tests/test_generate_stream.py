@@ -28,18 +28,43 @@ from fastapi.testclient import TestClient
 from orchestrator import config, gate, models, stream
 from orchestrator.server import app
 
+# Values that stand in for a credential but cannot authenticate against a
+# provider. See `_has_real_provider_key`.
+_PLACEHOLDER_KEYS = {"test-placeholder-not-a-real-key", "e2e-placeholder-key"}
+
+
+def _has_real_provider_key() -> bool:
+    """A *real* provider key, not merely a non-empty `GOOGLE_API_KEY`.
+
+    Two sources put a placeholder in the environment: conftest's
+    `_platform_key_placeholder` (when nothing is set) and the T046 harness
+    (`GOOGLE_API_KEY=e2e-placeholder-key`). Treating either as "live" made
+    these tests dial Google's API with a key that cannot authenticate, get a
+    400 back, and leave ADK's genai client to be finalised on garbage
+    collection — which, landing on a closed loop, raised "Event loop is
+    closed" inside an unrelated test and failed the run (T046). A test must
+    never reach a provider it cannot actually authenticate against, so a
+    placeholder counts as "no live provider" and skips like a missing key.
+    """
+    key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    return bool(key) and key.lower() not in _PLACEHOLDER_KEYS
+
 
 def _live_env() -> bool:
-    return all(
+    return _has_real_provider_key() and all(
         os.environ.get(k, "").strip()
         for k in ("DATABASE_URL", "INTERNAL_AUTH_TOKEN", "GOOGLE_API_KEY")
     )
 
 
-pytestmark = pytest.mark.skipif(
+# Deliberately *not* a module-level `pytestmark`: only the two live T024/T025
+# tests need a provider. A file-wide guard silently skipped the provider-free
+# contract tests too whenever the key was a placeholder, which is exactly the
+# coverage that must never depend on a credential (T046).
+_live_only = pytest.mark.skipif(
     not _live_env(),
-    reason="live streaming tests need DATABASE_URL + INTERNAL_AUTH_TOKEN + GOOGLE_API_KEY "
-    "(quickstart env); run via T046",
+    reason="live streaming test needs a real DATABASE_URL + INTERNAL_AUTH_TOKEN + "
+    "GOOGLE_API_KEY (quickstart env); a placeholder key does not count. Run via T046.",
 )
 
 
@@ -67,9 +92,15 @@ def _body(account: dict[str, str], prompt: str) -> dict[str, Any]:
 
 
 def _post(account: dict[str, str], prompt: str = "write a short lighthouse memoir"):
-    return TestClient(app).post(
-        "/v1/generate", json=_body(account, prompt), headers=_headers()
-    )
+    # `with` is load-bearing: an unclosed TestClient owns an httpx transport
+    # that is finalised on garbage collection, and if that lands after its
+    # event loop has closed the teardown raises "Event loop is closed" inside
+    # whichever unrelated test happens to be running. It surfaced as a phantom
+    # failure in test_stream_api.py (T046).
+    with TestClient(app) as client:
+        return client.post(
+            "/v1/generate", json=_body(account, prompt), headers=_headers()
+        )
 
 
 def _frames(text: str) -> list[dict[str, Any]]:
@@ -114,6 +145,12 @@ def _probe_provider() -> tuple[bool, str]:
     settings = config.get_settings()
     client = genai.Client(api_key=settings.require_platform_key())
     started = time.monotonic()
+    # `client` must be closed on every path, including the early returns below.
+    # A leaked `genai.Client` owns a live TLS transport whose finalisation is
+    # deferred to garbage collection; when that lands after the test's event
+    # loop has closed it raises "Event loop is closed" inside whichever
+    # unrelated async test is running at the time. That surfaced as a phantom
+    # failure in test_server_gate.py / test_stream_api.py (T046).
     try:
         response = client.models.generate_content(
             model=settings.orchestrator_model,
@@ -122,12 +159,15 @@ def _probe_provider() -> tuple[bool, str]:
         )
     except Exception as exc:  # noqa: BLE001 - any provider fault means "degraded"
         return False, f"probe failed: {type(exc).__name__}: {str(exc)[:200]}"
+    finally:
+        client.close()
     elapsed = time.monotonic() - started
     if not (response.text or "").strip():
         return False, "probe returned no text"
     return elapsed < 2.0, f"probe took {elapsed:.2f}s"
 
 
+@_live_only
 def test_request_streams_through_orchestrator_to_content_agent(
     app_env: None, fresh_account: dict[str, str]
 ) -> None:
@@ -155,6 +195,7 @@ def test_request_streams_through_orchestrator_to_content_agent(
     )
 
 
+@_live_only
 def test_first_token_within_2s_normalized_run(
     app_env: None, fresh_account: dict[str, str]
 ) -> None:
@@ -195,22 +236,6 @@ def test_first_token_within_2s_normalized_run(
     assert first_token_at < 2.0, f"first token took {first_token_at:.2f}s (>= 2s)"
 
 
-def test_stream_discipline_headers(
-    app_env: None, fresh_account: dict[str, str]
-) -> None:
-    """AC3 groundwork: an admitted request is an unbuffered SSE stream.
-
-    research.md §2: without `X-Accel-Buffering: no` a proxy in front of the
-    service will coalesce the whole stream and destroy first-token latency, so
-    the header is part of the contract, not an optimisation.
-    """
-    res = _post(fresh_account)
-    assert res.status_code == 200
-    assert res.headers["content-type"].startswith("text/event-stream")
-    assert res.headers["cache-control"] == "no-cache, no-transform"
-    assert res.headers["x-accel-buffering"] == "no"
-
-
 # --- Provider-free contract tests -------------------------------------------
 #
 # The two tests above are the *live* ones T024/T025 asked for, and they are the
@@ -246,6 +271,27 @@ def _assert_wire_contract(text: str) -> list[dict[str, Any]]:
 @pytest.fixture
 def fake_model(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(stream, "build_orchestrator", _fake_orchestrator)
+
+
+@pytest.mark.usefixtures("dsn")
+def test_stream_discipline_headers(
+    app_env: None, fresh_account: dict[str, str], fake_model: None
+) -> None:
+    """AC3 groundwork: an admitted request is an unbuffered SSE stream.
+
+    research.md §2: without `X-Accel-Buffering: no` a proxy in front of the
+    service will coalesce the whole stream and destroy first-token latency, so
+    the header is part of the contract, not an optimisation.
+
+    This asserts only on response headers, so it never needed a provider. It
+    used to live in the live-provider section and paid for a real Gemini round
+    trip to learn nothing (T046).
+    """
+    res = _post(fresh_account)
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/event-stream")
+    assert res.headers["cache-control"] == "no-cache, no-transform"
+    assert res.headers["x-accel-buffering"] == "no"
 
 
 @pytest.mark.usefixtures("dsn")

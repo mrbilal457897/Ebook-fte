@@ -14,11 +14,14 @@ acceptance criterion instead and every one is DB-backed — the criteria are
 about transaction behaviour and tenant isolation, neither of which a mock can
 establish.
 
-**Status at 2026-09-28**: T001–T016 are complete (Phases 1–3). 31 DB-backed
+**Status at 2026-09-28**: all 20 tasks are complete (Phases 1–4). 31 DB-backed
 tests pass against real Postgres; `ruff` and `pyright` are green; all eight
-spec acceptance criteria are ticked in spec.md §5. Phase 4 (wiring, T101–T104)
-is still open — the server is verified but the Orchestrator does not call it
-yet, so it is currently dead code in production terms.
+spec acceptance criteria are ticked in spec.md §5. Phase 4 (wiring) closed the
+same day: the server is no longer dead code — the Content Agent reaches
+`content_versions` through it via `save_content_version`, and the Orchestrator's
+43 DB-backed tests pass unchanged after that wiring. See T101 for the recorded
+direct-SQL exception covering the Orchestrator's three streaming transaction
+shapes.
 
 ## Format
 
@@ -77,4 +80,4 @@ MCP server is currently dead code in production terms.
    changes which process owns each write, which was a design call for the
    project owner, not a mechanical one. **Closed 2026-09-28**: the owner
    recorded the direct-SQL exception in `spec.md` §7 and T101–T104 are now
-   complete.
+   complete. **No task in this file is open.**

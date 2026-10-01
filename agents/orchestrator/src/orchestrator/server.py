@@ -253,7 +253,12 @@ async def generate(
         nonlocal persisted_any
 
         def _commit() -> None:
-            with models.transaction() as conn:
+            # Pipelined (see models.pipelined_transaction): this runs once per
+            # streamed chunk and must land before the token is emitted
+            # (FR-005), so its round-trip cost is paid by the customer on every
+            # single token. Two sequential statements at ~220 ms each is
+            # ~440 ms of stall per chunk; one pipelined batch is ~220 ms.
+            with models.pipelined_transaction() as conn:
                 persistence.persist_chunk(
                     conn,
                     version_id=ctx.version_id,
@@ -269,7 +274,10 @@ async def generate(
 
     async def _finalize(full: str) -> None:
         def _commit() -> None:
-            with models.transaction() as conn:
+            # Pipelined: five independent statements (finalize version, one
+            # invocation, one audit row, release lease) that all take values
+            # the caller already holds, so nothing here needs an earlier result.
+            with models.pipelined_transaction() as conn:
                 persistence.finalize_generation(
                     conn,
                     version_id=ctx.version_id,
@@ -292,7 +300,7 @@ async def generate(
 
     async def _fail(code: str) -> None:
         def _commit() -> None:
-            with models.transaction() as conn:
+            with models.pipelined_transaction() as conn:
                 persistence.fail_generation(
                     conn,
                     tenant_id=ctx.tenant_id,

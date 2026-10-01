@@ -40,7 +40,22 @@ uv run ebook-data                 # or: uv run python -m ebook_data.server
 Env: `DATABASE_URL` (required); `EBOOK_DATA_HOST` (127.0.0.1),
 `EBOOK_DATA_PORT` (8000), `EBOOK_DATA_POOL_MIN/MAX` (1/10).
 
-## Registering with ADK agents
+## How the agents reach it
 
-Callers use the agent-roster's MCP client config to point each specialist agent
-at the server URL (e.g. `http://127.0.0.1:8000/mcp`).
+Each specialist agent builds its own `McpToolset` in its `bookdata.py` module,
+pointed at `EBOOK_DATA_URL` and narrowed by an explicit `tool_filter`:
+
+| Agent | Allowlist |
+|---|---|
+| Content | `save_content_version`, `get_book_status` |
+| Cover Design | `save_cover_asset`, `get_cover_assets` |
+| Formatting | `run_formatting_job`, `get_formatting_job_status` |
+| Publishing Advisor | `create_publishing_record`, `get_publishing_record` |
+
+The filter is an allowlist, not a blacklist, so a tool added here later is not
+silently exposed to an agent. `tenant_id` / `account_id` are passed as tool
+arguments by the Orchestrator, derived from the authenticated session — never
+from model output or conversation text.
+
+The Orchestrator is the one recorded exception: it calls the database directly
+for exactly three transaction shapes (`spec.md` §7).

@@ -96,13 +96,25 @@ def test_endpoint_plumbs_stream_to_sse(
     def collect(name: str):
         return lambda *a, **k: calls.append(name)
 
+    # `transaction` is still patched for anything that reaches for it, but the
+    # streaming path commits through `pipelined_transaction` (T046/AC3: the
+    # per-chunk commit must not cost two round trips). Both seams are replaced;
+    # patching only the sequential one left the pipelined one reaching for the
+    # pool, which then blocked for 30 s on the deliberately-unused DSN above.
     monkeypatch.setattr(server_mod.models, "transaction", lambda: nullcontext())
+    monkeypatch.setattr(
+        server_mod.models, "pipelined_transaction", lambda: nullcontext()
+    )
     monkeypatch.setattr(server_mod.persistence, "persist_chunk", collect("persist_chunk"))
     monkeypatch.setattr(server_mod.persistence, "finalize_generation", collect("finalize"))
     monkeypatch.setattr(server_mod, "stream_generation", fake_stream)
 
-    client = TestClient(app)
-    res = client.post("/v1/generate", json=_body(), headers=_headers())
+    # `with` is load-bearing: an unclosed TestClient owns an httpx transport
+    # finalised on garbage collection, which raises "Event loop is closed" if it
+    # lands after its loop is gone (T046). It surfaced as a phantom failure in
+    # an unrelated test.
+    with TestClient(app) as client:
+        res = client.post("/v1/generate", json=_body(), headers=_headers())
 
     assert res.status_code == 200
     assert res.headers["content-type"].startswith("text/event-stream")
@@ -129,12 +141,12 @@ def test_unresolvable_byok_emits_terminal_error_event(
 
     monkeypatch.setattr(server_mod, "_admit_request", fake_admit)
 
-    client = TestClient(app)
-    res = client.post(
-        "/v1/generate",
-        json=_body(prompt="book"),
-        headers=_headers(),
-    )
+    with TestClient(app) as client:
+        res = client.post(
+            "/v1/generate",
+            json=_body(prompt="book"),
+            headers=_headers(),
+        )
 
     assert res.status_code == 200
     assert 'event: error' in res.text
@@ -145,22 +157,22 @@ def test_unresolvable_byok_emits_terminal_error_event(
 
 
 def test_invalid_prompt_rejected_before_stream(configured_env: None) -> None:
-    client = TestClient(app)
-    res = client.post(
-        "/v1/generate",
-        json=_body(prompt="   "),
-        headers=_headers(),
-    )
+    with TestClient(app) as client:
+        res = client.post(
+            "/v1/generate",
+            json=_body(prompt="   "),
+            headers=_headers(),
+        )
     assert res.status_code == 400
     assert res.json() == {"code": "invalid_prompt", "message": "Prompt is empty or too long"}
 
 
 def test_bad_internal_token_rejected(configured_env: None) -> None:
-    client = TestClient(app)
-    res = client.post(
-        "/v1/generate",
-        json=_body(),
-        headers={"X-Internal-Token": "wrong"},
-    )
+    with TestClient(app) as client:
+        res = client.post(
+            "/v1/generate",
+            json=_body(),
+            headers={"X-Internal-Token": "wrong"},
+        )
     assert res.status_code == 401
     assert res.json()["code"] == "unauthorized"

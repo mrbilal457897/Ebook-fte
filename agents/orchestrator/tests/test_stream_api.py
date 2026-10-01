@@ -28,11 +28,11 @@ guessed shape. No network: it drives ADK's runner with a fake `BaseLlm`.
 from collections.abc import AsyncGenerator
 
 import pytest
+from fake_llm import FakeLlm
 from google.adk.agents import LlmAgent
 from google.adk.agents._streaming_mode import StreamingMode
 from google.adk.agents.run_config import RunConfig
 from google.adk.events import Event
-from google.adk.models.base_llm import BaseLlm
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.adk.runners import Runner
@@ -53,11 +53,26 @@ def _event_text(event: Event) -> str:
     return "".join(part.text or "" for part in event.content.parts)
 
 
-class FakeModel(BaseLlm):
+class FakeModel(FakeLlm):
     """Streams two partial chunks then a content-carrying terminal chunk,
-    like Gemini does (verified: a no-content terminal response is dropped)."""
+    like Gemini does (verified: a no-content terminal response is dropped).
+
+    Inherits the whole `BaseLlm` contract from `fake_llm.FakeLlm` rather than
+    restating it. That inheritance is load-bearing, not cosmetic: without
+    `supported_models()` ADK's `LlmRegistry` cannot resolve this model and
+    silently constructs a real Gemini connection instead — a live genai client
+    holding a real TLS connection that is finalised on garbage collection. When
+    that landed after its event loop had closed it raised "Event loop is closed"
+    inside whichever unrelated async test was running (T046). It also made this
+    "no network" spike test depend on someone else's quota. One fake-model
+    contract, in one place, is the fix.
+    """
 
     model: str = "fake/spike-model"
+
+    @classmethod
+    def supported_models(cls) -> list[str]:
+        return [cls.model]
 
     async def generate_content_async(
         self, llm_request: LlmRequest, stream: bool = False

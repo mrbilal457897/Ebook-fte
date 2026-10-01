@@ -105,15 +105,35 @@ def test_over_limit_leaves_single_window_row(db: Connection[Any], fresh_account:
     with db.cursor() as cur:
         cur.execute(
             """
-            SELECT count(*) AS n, max(count) AS c
+            SELECT window_start, count
             FROM rate_limit_counts
             WHERE tenant_id = %s AND account_id = %s AND kind = 'device'
               AND scope_key = 'shared-key'
+            ORDER BY window_start
             """,
             (acct["tenant_id"], acct["account_id"]),
         )
-        row = cur.fetchone()
+        rows = cur.fetchall()
 
-    assert row is not None
-    assert row["n"] == 1, "one row per (tenant, account, kind, scope_key, window)"
-    assert row["c"] == THRESHOLD, "count must stop at the threshold, never exceed it"
+    assert rows, "the bumps must leave at least one counted window behind"
+
+    # One row per (tenant, account, kind, scope_key, window_start) — and the
+    # uniqueness of that tuple is what guarantees a second row can only appear
+    # when the bursts genuinely straddled a window boundary, because
+    # `window_start` is derived from `now()` rather than pinned. This test does
+    # THRESHOLD + 3 bumps, so on a shared CI box it *will* cross a boundary
+    # sometimes; asserting a global row count of 1 made it fail roughly once a
+    # minute of wall-clock time, which is a test defect, not a gate defect.
+    # The invariant that actually matters — no window ever counts past the
+    # threshold — is asserted per row, so it holds either way.
+    keys = [(r["window_start"],) for r in rows]
+    assert len(keys) == len(set(keys)), "window_start must be unique per row"
+    for row in rows:
+        assert row["count"] <= THRESHOLD, (
+            f"window {row['window_start']} counted {row['count']} > "
+            f"{THRESHOLD}; the count must stop at the threshold"
+        )
+    assert max(r["count"] for r in rows) == THRESHOLD, (
+        "the threshold must be reached exactly — otherwise the gate would be "
+        "rejecting below its configured limit"
+    )
