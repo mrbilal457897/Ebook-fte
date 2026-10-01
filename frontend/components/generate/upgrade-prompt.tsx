@@ -6,10 +6,11 @@ import { triggerUpgrade } from "@/lib/upgrade"
 
 /**
  * T040 US3 exhaustion prompt: shown when a generation attempt returns
- * `402 free_tier_exhausted`. Presents a clear upgrade call-to-action and, on
- * click, fires the Lago checkout-entry trigger (lib/upgrade + /api/upgrade).
- * Checkout itself is deferred to a later slice, so the success message says
- * so explicitly instead of pretending a payment flow exists.
+ * `402 free_tier_exhausted`. On click it starts the Lago checkout flow and
+ * opens the gateway-hosted page where the customer stores a payment method.
+ *
+ * The link Lago returns expires after 24 hours, so that is stated plainly
+ * instead of letting the customer discover it as a dead link tomorrow.
  */
 export default function UpgradePrompt() {
   const [state, setState] = useState<"idle" | "starting" | "ok" | "error">("idle")
@@ -18,19 +19,18 @@ export default function UpgradePrompt() {
   const onUpgrade = useCallback(async () => {
     setState("starting")
     const result = await triggerUpgrade()
-    if (!result.deferred && !result.url) {
+    if (!result.ok) {
       setState("error")
       setMessage(result.message)
       return
     }
-    if (result.url) {
-      window.open(result.url, "_blank", "noopener")
-      setState("ok")
-      setMessage("Opening checkout…")
-      return
-    }
+    window.open(result.checkoutUrl, "_blank", "noopener")
     setState("ok")
-    setMessage(result.message)
+    setMessage(
+      result.expiresInHours
+        ? `Opening checkout — this link expires in ${result.expiresInHours} hours.`
+        : "Opening checkout…",
+    )
   }, [])
 
   return (

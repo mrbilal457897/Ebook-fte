@@ -1,29 +1,41 @@
-export type UpgradeResult = {
-  deferred: boolean
-  url: string | null
-  message: string
-}
+export type UpgradeResult =
+  | { ok: true; checkoutUrl: string; expiresInHours: number | null }
+  | { ok: false; message: string }
 
 /**
- * T040 upgrade trigger (US3, FR-011): initiates the Lago subscription-checkout
- * entry point from the exhaustion prompt. This slice only fires the trigger
- * — the Lago checkout flow itself is a separate slice — so the result is
- * normally `{ deferred: true }`; if a checkout URL is configured server-side
- * it is returned here for the prompt to open.
+ * T040 upgrade trigger (US3, FR-011): starts the Lago checkout flow from the
+ * exhaustion prompt.
+ *
+ * The server returns a real per-customer gateway checkout URL, or a `code`
+ * explaining why it could not. Note the shape is no longer
+ * `{ deferred, url }`: that contract existed only to describe a checkout flow
+ * which did not exist, and `deferred: true` with a `url` was ambiguous — the
+ * old client could not tell "billing is unconfigured" from "here is your
+ * checkout link" and reported both as success.
  */
 export async function triggerUpgrade(): Promise<UpgradeResult> {
   const res = await fetch("/api/upgrade", { method: "POST" })
-  const body = (await res.json()) as Partial<UpgradeResult>
-  if (!res.ok || !body.deferred) {
+  const body = (await res.json().catch(() => null)) as {
+    checkoutUrl?: string
+    expiresInHours?: number
+    message?: string
+    code?: string
+  } | null
+
+  if (!res.ok || !body?.checkoutUrl) {
     return {
-      deferred: false,
-      url: null,
-      message: body.message ?? "Upgrade could not be started — try again.",
+      ok: false,
+      message:
+        body?.message ??
+        (res.status === 503
+          ? "Upgrades aren’t available on this deployment right now."
+          : "Upgrade could not be started — try again."),
     }
   }
+
   return {
-    deferred: true,
-    url: body.url ?? null,
-    message: body.message ?? "Checkout is on its way.",
+    ok: true,
+    checkoutUrl: body.checkoutUrl,
+    expiresInHours: body.expiresInHours ?? null,
   }
 }
