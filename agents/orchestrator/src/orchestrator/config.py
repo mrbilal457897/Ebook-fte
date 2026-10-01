@@ -34,6 +34,24 @@ def _float_env(name: str, default: float) -> float:
         raise RuntimeError(f"{name} must be a float, got {raw!r}") from None
 
 
+def _bool_env(name: str, default: bool) -> bool:
+    """Parse a boolean env flag.
+
+    Only the spellings a human actually types are accepted, and anything else
+    raises. This matters more than usual for `ALLOW_PLAINTEXT_BYOK`: a silently
+    misread flag that defaulted to *allowing* plaintext BYOK at rest would defeat
+    the encryption the column exists to provide (AGENTS.md §5 Secrets).
+    """
+    raw = os.environ.get(name, "").strip().lower()
+    if not raw:
+        return default
+    if raw in ("1", "true", "yes", "on"):
+        return True
+    if raw in ("0", "false", "no", "off"):
+        return False
+    raise RuntimeError(f"{name} must be a boolean (1/0/true/false/yes/no), got {raw!r}")
+
+
 @dataclass(frozen=True)
 class GenerationParams:
     temperature: float
@@ -62,6 +80,13 @@ class Settings:
     rate_limit_device_max: int
     rate_limit_ip_max: int
     rate_limit_window_seconds: int
+
+    # --- BYOK (Principle 3: encrypted at rest, per-request, never logged) ---
+    byok_encryption_key: str
+    allow_plaintext_byok: bool
+    byok_gemini_model: str
+    byok_openai_model: str
+    byok_anthropic_model: str
 
     # --- Lago billing (upgrade-trigger shape only this slice) ---
     lago_api_url: str
@@ -121,6 +146,11 @@ def load_settings() -> Settings:
         rate_limit_device_max=_int_env("RATE_LIMIT_DEVICE_MAX", 10),
         rate_limit_ip_max=_int_env("RATE_LIMIT_IP_MAX", 30),
         rate_limit_window_seconds=_int_env("RATE_LIMIT_WINDOW_SECONDS", 60),
+        byok_encryption_key=_env("BYOK_ENCRYPTION_KEY"),
+        allow_plaintext_byok=_bool_env("ALLOW_PLAINTEXT_BYOK", False),
+        byok_gemini_model=_env("BYOK_GEMINI_MODEL", "gemini-flash-latest"),
+        byok_openai_model=_env("BYOK_OPENAI_MODEL", "gpt-4.1-mini"),
+        byok_anthropic_model=_env("BYOK_ANTHROPIC_MODEL", "claude-sonnet-4-5"),
         lago_api_url=_env("LAGO_API_URL", "http://localhost:3001/api/v1"),
         lago_api_key=_env("LAGO_API_KEY"),
     )

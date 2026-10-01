@@ -12,15 +12,26 @@ Resolution rules that must hold regardless of the live provider path:
   The key is decrypted in-memory for the request duration only (Article
   VII.2) and never logged.
 
+`build_model` turns a resolved spec into an ADK model object, so every provider
+still goes through ADK's model abstraction (Principle 2) — nothing here talks to
+a provider SDK directly. Per-provider names are configurable via env, never
+hard-coded (Principle 2 / AGENTS.md §5).
+
 Data access stays in `models.get_model_credential` (tenant-scoped, fixed
-named statements) — this module only resolves + decrypts.
+named statements) — this module only resolves + decrypts + adapts.
 """
 
 from dataclasses import dataclass
 
+from google.adk.models.base_llm import BaseLlm
 from psycopg import Connection
 
 from orchestrator import config, models
+
+#: The only providers a customer may bring a key for. Mirrors the
+#: `model_credentials.provider` CHECK constraint in db/migrations/0001, so an
+#: unknown provider cannot reach `build_model` even if a row somehow said so.
+SUPPORTED_PROVIDERS = ("gemini", "openai", "anthropic")
 
 
 @dataclass(frozen=True)
@@ -56,55 +67,145 @@ def resolve_generation_model(
     if cred is None or cred["last_status"] == "invalid":
         return None
 
+    provider = str(cred["provider"])
+    if provider not in SUPPORTED_PROVIDERS:
+        # A row claiming an unsupported provider is a data defect, not a
+        # customer error. Fail closed: no fallback (FR-008), no guess.
+        raise NotImplementedError(
+            f"model_credentials.provider={provider!r} is not a supported "
+            f"BYOK provider {SUPPORTED_PROVIDERS}"
+        )
+
     return ResolvedModel(
-        provider=cred["provider"],
+        provider=provider,
         api_key=_decrypt_key(cred["encrypted_key"]),
-        model=_model_name_from_provider(cred["provider"], config.get_settings().content_agent_model),
+        model=_model_name_from_provider(provider, config.get_settings()),
     )
 
 
-def get_model_adapter(spec: ResolvedModel) -> None:
-    """Resolve the ADK model object/identifier for a per-request credential.
+def build_model(spec: ResolvedModel) -> BaseLlm | None:
+    """Build the ADK model object for a resolved spec.
 
-    The platform path (`provider == "platform"`) needs no adapter — the agent
-    runs on the platform GOOGLE_API_KEY from config/env.
+    Returns `None` for the platform path: that run uses the configured
+    `GOOGLE_API_KEY` from the environment, exactly as before this existed, and
+    ADK constructs the client itself.
 
-    For a customer BYOK key, ADK 2.9.2 exposes no per-request key seam on the
-    Gemini connection (keys come from env); the OpenAI/Anthropic path needs
-    `google-adk[extensions]` (LiteLLM). Wiring that against a live provider is
-    a quickstart-env concern (T046) — raise loudly here so a customer BYOK
-    attempt never silently falls back to the platform key (FR-008).
+    For a customer BYOK key the key must travel *with the model object* — ADK's
+    Gemini connection otherwise reads the key from the process environment,
+    which would silently use the platform key and violate FR-008. Two routes,
+    both ADK's own abstraction (Principle 2):
+
+    - **gemini** -> `Gemini(client_kwargs={"api_key": ...})`. ADK's `Gemini`
+      exposes `client_kwargs` for exactly this ("extra arguments to pass to the
+      google.genai.Client constructor"), so the key is per-instance and the
+      environment is never consulted.
+    - **openai / anthropic** -> `LiteLlm(model="<provider>/<name>",
+      api_key=...)`, i.e. ADK's LiteLLM integration, which is the sanctioned
+      path to these providers for BYOK customers (AGENTS.md §2).
+
+    A key is never stored on the object beyond this call's lifetime, and the
+    `ResolvedModel` holding the plaintext key is dropped by the caller once the
+    run is built.
     """
     if spec.provider == "platform":
-        return
+        return None
+
+    if spec.provider == "gemini":
+        from google.adk.models.google_llm import Gemini
+
+        return Gemini(model=spec.model, client_kwargs={"api_key": spec.api_key})
+
+    if spec.provider in ("openai", "anthropic"):
+        from google.adk.models.lite_llm import LiteLlm
+
+        return LiteLlm(model=f"{spec.provider}/{spec.model}", api_key=spec.api_key)
+
+    # Unreachable while `resolve_generation_model` validates the provider, but a
+    # silent fall-through here would be the worst possible shape of bug: it would
+    # look like a working BYOK run. Raise instead.
     raise NotImplementedError(
-        "live BYOK connection not wired for provider "
-        f"{spec.provider!r} — requires the quickstart env "
-        "(google-adk[extensions] for LiteLLM providers); refusing to fall "
-        "back to the platform key (FR-008)"
+        f"no ADK model adapter for BYOK provider {spec.provider!r}; refusing to "
+        "fall back to the platform key (FR-008)"
     )
 
 
 def _decrypt_key(encrypted: bytes | memoryview) -> str:
     """Decrypt the at-rest key (bytea, data-model.md).
 
-    Production deployments must wire KMS/age. For local dev only, a key may
-    be stored as `enc:` + UTF-8 plaintext (dev seed). Any other payload shape
-    fails loudly rather than guessing.
+    Production shape is AES-256-GCM under `BYOK_ENCRYPTION_KEY`, written by the
+    credential-save path in `frontend/lib/model-credentials.ts` and read here.
+    GCM is authenticated, so a tampered blob raises rather than decrypting to
+    garbage.
+
+    A `dev:`-prefixed blob is the local-development escape hatch: plaintext, so
+    a developer can seed a row by hand without running the service. It is
+    refused outright unless `ALLOW_PLAINTEXT_BYOK=1`, because silently accepting
+    plaintext at rest is exactly the failure the bytea column exists to prevent.
     """
     raw = bytes(encrypted)
-    prefix = b"enc:"
-    if raw.startswith(prefix):
-        return raw[len(prefix) :].decode("utf-8")
+    s = config.get_settings()
+
+    if raw.startswith(b"gcm:"):
+        if not s.byok_encryption_key:
+            raise RuntimeError(
+                "model_credentials.encrypted_key is AES-GCM sealed but "
+                "BYOK_ENCRYPTION_KEY is not configured (see .env.example)"
+            )
+        return _aes_gcm_open(s.byok_encryption_key, raw[len(b"gcm:") :])
+
+    if raw.startswith(b"dev:"):
+        if not s.allow_plaintext_byok:
+            raise RuntimeError(
+                "model_credentials.encrypted_key holds a plaintext 'dev:' blob "
+                "and ALLOW_PLAINTEXT_BYOK is not set; refusing to read a key "
+                "that is not encrypted at rest (AGENTS.md §5 Secrets)"
+            )
+        return raw[len(b"dev:") :].decode("utf-8")
+
     raise RuntimeError(
-        "model_credentials.encrypted_key is not decodable: wire KMS/age "
-        "decryption (data-model.md); dev rows must be 'enc:' + plaintext"
+        "model_credentials.encrypted_key has an unrecognised prefix; expected "
+        "'gcm:' (AES-256-GCM) or an explicitly-enabled 'dev:' blob"
     )
 
 
-def _model_name_from_provider(provider: str, base_model: str) -> str:
-    # Gemini: `gemini-flash-latest` w/ a per-customer API key value.
-    # OpenAI/Anthropic: LiteLLM-style `openai/...`, `anthropic/...`.
-    if provider == "gemini":
-        return base_model
-    return f"{provider}/{base_model}"
+def _aes_gcm_open(key_b64: str, sealed: bytes) -> str:
+    """Open a `nonce || ciphertext || tag` blob produced by the save path."""
+    import base64
+
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    try:
+        key = base64.b64decode(key_b64, validate=True)
+    except (ValueError, TypeError) as exc:
+        # Any b64 failure is the same config error, so it is reported as one
+        # rather than leaking binascii's internals.
+        raise RuntimeError("BYOK_ENCRYPTION_KEY must be base64") from exc
+    if len(key) != 32:
+        raise RuntimeError(
+            f"BYOK_ENCRYPTION_KEY must decode to 32 bytes for AES-256-GCM, "
+            f"got {len(key)}"
+        )
+    try:
+        return AESGCM(key).decrypt(sealed[:12], sealed[12:], None).decode("utf-8")
+    except InvalidTag as exc:
+        raise RuntimeError(
+            "model_credentials.encrypted_key failed authentication; the row was "
+            "tampered with or BYOK_ENCRYPTION_KEY is wrong"
+        ) from exc
+
+
+def _model_name_from_provider(provider: str, settings: config.Settings) -> str:
+    """The model name to use for a BYOK provider.
+
+    Deliberately per-provider rather than reusing `content_agent_model`: a Gemini
+    model name is not a valid OpenAI or Anthropic model, and prefixing the Gemini
+    name (`openai/gemini-flash-latest`, which this function used to return) would
+    hand LiteLLM a name no provider can resolve. Every name is env-configurable
+    per AGENTS.md §5, and the provider prefix is added by `build_model`.
+    """
+    return {
+        "gemini": settings.byok_gemini_model,
+        "openai": settings.byok_openai_model,
+        "anthropic": settings.byok_anthropic_model,
+    }[provider]

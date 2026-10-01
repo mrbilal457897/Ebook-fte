@@ -2,6 +2,7 @@ from contextlib import nullcontext
 
 import pytest
 from fastapi.testclient import TestClient
+from google.adk.models.base_llm import BaseLlm
 
 from orchestrator import byok, config, gate
 from orchestrator import server as server_mod
@@ -61,8 +62,12 @@ def test_endpoint_plumbs_stream_to_sse(
 
     async def fake_admit(
         req: object, prompt: str
-    ) -> tuple[gate.GenerationContext, byok.ResolvedModel]:
-        return (_ctx(), _platform())
+    ) -> tuple[gate.GenerationContext, byok.ResolvedModel, BaseLlm | None]:
+        # The third element is the per-request ADK model object. `None` is the
+        # platform path (ADK reads GOOGLE_API_KEY from the environment); a BYOK
+        # admission returns a real object carrying the customer's key, which is
+        # what makes the customer's key bill the generation (FR-008).
+        return (_ctx(), _platform(), None)
 
     monkeypatch.setattr(server_mod, "_admit_request", fake_admit)
 
@@ -136,7 +141,7 @@ def test_unresolvable_byok_emits_terminal_error_event(
 
     async def fake_admit(
         req: object, prompt: str
-    ) -> tuple[gate.GenerationContext, byok.ResolvedModel] | None:
+    ) -> tuple[gate.GenerationContext, byok.ResolvedModel, BaseLlm | None] | None:
         return None  # credential dead: credit already refunded inside admission
 
     monkeypatch.setattr(server_mod, "_admit_request", fake_admit)

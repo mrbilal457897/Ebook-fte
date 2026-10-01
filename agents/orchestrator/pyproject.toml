@@ -1,7 +1,7 @@
 [project]
 name = "orchestrator"
 version = "0.1.0"
-description = "Add your description here"
+description = "ADK Orchestrator: authenticates the tenant, enforces free-tier/rate-limit/lease gates, resolves the platform or BYOK model, and routes to specialists."
 readme = "README.md"
 authors = [
     { name = "Muhammad Bilal", email = "163662455+mrbilal457897@users.noreply.github.com" }
@@ -12,7 +12,7 @@ dependencies = [
     "cover-design-agent",
     "fastapi==0.133.1",
     "formatting-agent",
-    "google-adk==2.9.2",
+    "google-adk[extensions]==2.9.2",
     "mcp==2.2.0",
     "psycopg-pool==3.3.2",
     "psycopg[binary]==3.3.6",
@@ -25,6 +25,9 @@ content-agent = { path = "../content-agent", editable = true }
 cover-design-agent = { path = "../cover-design-agent", editable = true }
 formatting-agent = { path = "../formatting-agent", editable = true }
 publishing-advisor-agent = { path = "../publishing-advisor-agent", editable = true }
+marketing-ads-agent = { path = "../marketing-ads-agent", editable = true }
+support-chatbot-agent = { path = "../support-chatbot-agent", editable = true }
+voice-agent = { path = "../voice-agent", editable = true }
 
 [project.scripts]
 orchestrator = "orchestrator:main"
@@ -35,6 +38,13 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    # The three UNWIRED placeholders are imported by
+    # tests/test_unwired_specialists.py, which enforces the slice-003 §3 honesty
+    # rule against them. They are deliberately NOT runtime dependencies: the
+    # Orchestrator must not be able to route to an agent with no tools.
+    "marketing-ads-agent",
+    "support-chatbot-agent",
+    "voice-agent",
     "httpx==0.28.1",
     "pyright>=1.1.414",
     "pytest>=9.1.1",

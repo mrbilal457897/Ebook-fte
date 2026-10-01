@@ -1,13 +1,14 @@
 import os
 
 from google.adk.agents import LlmAgent
+from google.adk.models.base_llm import BaseLlm
 
 from publishing_advisor_agent.bookdata import build_book_data_toolset
 from publishing_advisor_agent.instructions import PUBLISHING_ADVISOR_AGENT_INSTRUCTIONS
 
 
 def build_publishing_advisor_agent(
-    *, model: str | None = None, with_book_data_tools: bool = True
+    *, model: str | BaseLlm | None = None, with_book_data_tools: bool = True
 ) -> LlmAgent:
     """Fresh Publishing Advisor Agent instance.
 

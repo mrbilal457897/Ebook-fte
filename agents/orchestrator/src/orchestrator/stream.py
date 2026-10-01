@@ -20,6 +20,7 @@ from typing import Any
 
 from google.adk.agents._streaming_mode import StreamingMode
 from google.adk.agents.run_config import RunConfig
+from google.adk.models.base_llm import BaseLlm
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
@@ -57,7 +58,7 @@ async def stream_generation(
     book_id: str,
     version_id: str,
     prompt: str,
-    model: str | None = None,
+    model: str | BaseLlm | None = None,
     on_token: Callable[[str], Any] | None = None,
     on_terminal: Callable[[str], Any] | None = None,
     on_failure: Callable[[str], Any] | None = None,

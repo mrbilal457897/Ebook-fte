@@ -23,6 +23,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from google.adk.models.base_llm import BaseLlm
 from pydantic import BaseModel, ConfigDict, Field
 
 from orchestrator import byok, config, gate, models, persistence
@@ -134,7 +135,7 @@ def _record_rate_limit_blocked(req: GenerateRequest) -> None:
 
 async def _admit_request(
     req: GenerateRequest, prompt: str
-) -> tuple[gate.GenerationContext, byok.ResolvedModel] | None:
+) -> tuple[gate.GenerationContext, byok.ResolvedModel, BaseLlm | None] | None:
     """Admission + BYOK resolution in ONE transaction, on a worker thread.
 
     These used to be two sequential transactions. They are now one because
@@ -149,13 +150,18 @@ async def _admit_request(
     instead of a second one that could fail independently and leave the credit
     consumed (FR-008, AC7/T027).
 
-    Returns `(ctx, resolved_model)`, or `None` when the credential was invalid
-    or unwired — in which case the credit is already refunded, audited, and the
-    lease released, so the endpoint only has to emit the terminal `error` event.
+    Returns `(ctx, resolved_model_spec, adk_model_object)`, or `None` when the
+    credential was invalid or unwired — in which case the credit is already
+    refunded, audited, and the lease released, so the endpoint only has to emit
+    the terminal `error` event. The ADK model object is `None` on the platform
+    path (ADK reads `GOOGLE_API_KEY` from the environment) and a real per-request
+    model carrying the customer's key otherwise.
     """
     s = config.get_settings()
 
-    def _admit_and_resolve() -> tuple[gate.GenerationContext, byok.ResolvedModel] | None:
+    def _admit_and_resolve() -> (
+        tuple[gate.GenerationContext, byok.ResolvedModel, BaseLlm | None] | None
+    ):
         try:
             # The `Rejection` is raised *inside* the transaction on purpose: a
             # rejected request must consume nothing, and `models.transaction()`
@@ -208,14 +214,18 @@ async def _admit_request(
                     _fail("byok_invalid")
                     return None
 
-                # Live BYOK adapter check — invalid/unwired provider refunds too.
+                # Prove a BYOK provider is actually runnable *before* the credit
+                # is committed and the stream opens. `build_model` raises only
+                # for a provider with no adapter, so reaching here means a real
+                # per-request model object exists and the customer's key travels
+                # with it (FR-008, no platform-key fallback).
                 try:
-                    byok.get_model_adapter(resolved)
+                    resolved_model = byok.build_model(resolved)
                 except NotImplementedError:
                     _fail("byok_not_wired")
                     return None
 
-                return (ctx, resolved)
+                return (ctx, resolved, resolved_model)
         except Rejection as rejection:
             # The admission txn rolled back, so the over-limit case must still
             # be auditable (T016: "only a rate_limit.blocked audit row") in its
@@ -244,7 +254,7 @@ async def generate(
 
         return StreamingResponse(err_only(), media_type="text/event-stream", headers=SSE_HEADERS)
 
-    ctx, resolved = admitted
+    ctx, _resolved, resolved_model = admitted
 
     started = time.perf_counter()
     persisted_any = False
@@ -322,7 +332,7 @@ async def generate(
             book_id=ctx.book_id,
             version_id=ctx.version_id,
             prompt=prompt,
-            model=None if resolved.provider == "platform" else resolved.model,
+            model=resolved_model,
             on_token=_persist_chunk,
             on_terminal=_finalize,
             on_failure=_fail,

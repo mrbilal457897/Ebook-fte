@@ -1,13 +1,14 @@
 import os
 
 from google.adk.agents import LlmAgent
+from google.adk.models.base_llm import BaseLlm
 
 from cover_design_agent.bookdata import build_book_data_toolset
 from cover_design_agent.instructions import COVER_DESIGN_AGENT_INSTRUCTIONS
 
 
 def build_cover_design_agent(
-    *, model: str | None = None, with_book_data_tools: bool = True
+    *, model: str | BaseLlm | None = None, with_book_data_tools: bool = True
 ) -> LlmAgent:
     """Fresh Cover Design Agent instance.
 

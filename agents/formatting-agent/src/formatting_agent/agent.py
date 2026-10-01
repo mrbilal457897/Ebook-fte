@@ -1,13 +1,14 @@
 import os
 
 from google.adk.agents import LlmAgent
+from google.adk.models.base_llm import BaseLlm
 
 from formatting_agent.bookdata import build_book_data_toolset
 from formatting_agent.instructions import FORMATTING_AGENT_INSTRUCTIONS
 
 
 def build_formatting_agent(
-    *, model: str | None = None, with_book_data_tools: bool = True
+    *, model: str | BaseLlm | None = None, with_book_data_tools: bool = True
 ) -> LlmAgent:
     """Fresh Formatting Agent instance.
 
