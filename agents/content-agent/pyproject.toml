@@ -1,7 +1,7 @@
 [project]
 name = "content-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "ADK Content Agent: drafts, edits, and versions a book's chapter text."
 readme = "README.md"
 authors = [
     { name = "Muhammad Bilal", email = "163662455+mrbilal457897@users.noreply.github.com" }

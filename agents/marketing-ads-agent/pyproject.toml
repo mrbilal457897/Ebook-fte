@@ -1,7 +1,7 @@
 [project]
 name = "marketing-ads-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "ADK Marketing/Ads Agent: UNWIRED PLACEHOLDER. Ad copy, targeting, and campaign creation are unimplemented; this package ships no tools."
 readme = "README.md"
 authors = [
     { name = "Muhammad Bilal", email = "163662455+mrbilal457897@users.noreply.github.com" }

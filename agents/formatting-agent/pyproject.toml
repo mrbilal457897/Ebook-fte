@@ -1,7 +1,7 @@
 [project]
 name = "formatting-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "ADK Formatting Agent: applies trim/margin/layout rules and exports EPUB/MOBI/PDF."
 readme = "README.md"
 authors = [
     { name = "Muhammad Bilal", email = "163662455+mrbilal457897@users.noreply.github.com" }

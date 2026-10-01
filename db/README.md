@@ -24,7 +24,7 @@ bash db/migrations/apply.sh
 psql -v ON_ERROR_STOP=1 -f db/seeds/seeds.sql "$DATABASE_URL"
 ```
 
-## Tables today (15)
+## Tables today (17)
 
 | Migration | Tables |
 |---|---|

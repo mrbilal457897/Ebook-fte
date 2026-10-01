@@ -1,7 +1,7 @@
 [project]
 name = "support-chatbot-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "ADK Onboarding/Support Chatbot Agent: UNWIRED PLACEHOLDER. Help-library search and human escalation are unimplemented; this package ships no tools."
 readme = "README.md"
 authors = [
     { name = "Muhammad Bilal", email = "163662455+mrbilal457897@users.noreply.github.com" }

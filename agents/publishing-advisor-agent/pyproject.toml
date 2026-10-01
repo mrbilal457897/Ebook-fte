@@ -1,7 +1,7 @@
 [project]
 name = "publishing-advisor-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "ADK Publishing Advisor Agent: platform rules, metadata mapping, and the approval-gated publish submission."
 readme = "README.md"
 authors = [
     { name = "Muhammad Bilal", email = "163662455+mrbilal457897@users.noreply.github.com" }
