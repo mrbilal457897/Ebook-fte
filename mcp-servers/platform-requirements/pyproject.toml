@@ -1,0 +1,26 @@
+[project]
+name = "platform-requirements"
+version = "0.1.0"
+description = "Custom MCP server (stateless streamable HTTP): authoritative publishing-platform requirements and package pre-flight validation. Read-only; it cannot submit."
+readme = "README.md"
+authors = [
+    { name = "Muhammad Bilal", email = "163662455+mrbilal457897@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "mcp==2.2.0",
+]
+
+[project.scripts]
+platform-requirements = "platform_requirements.server:main"
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
+]

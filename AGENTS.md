@@ -25,7 +25,8 @@ irreversible or costly actions.
 | Area | Decision |
 |---|---|
 | Tenancy | Multi-tenant SaaS: many **companies** (tenants) subscribe; each has its own **end-customers** |
-| Publishing | Fully auto-publish using the *end-customer's own* platform credentials (KDP, Apple Books, IngramSpark) — agent submits, but the "go live" step requires explicit human approval |
+| Publishing | **Corrected 2026-10-01 — the previous wording was based on a false premise, see `specs/004-publishing-preflight/research.md`.** KDP, Apple Books, and IngramSpark expose **no public self-publisher submission API**, so there are no "end-customer's own platform credentials" to publish through. Verified: KDP is a web form with no upload API at all (its only API is read-only sales data); Apple Books for Authors is a web portal requiring an iTunes Connect account; IngramSpark is a web portal. Every third-party "KDP automation" is Puppeteer/CDP browser clicking, and Amazon's final Publish control is reported to require a human click regardless. **Therefore: we prepare and validate the package, and hand the human a precise checklist — we do not submit.** Actual submission is deferred; if it is ever built it must be via browser automation (a materially different architecture with ToS exposure, and out of scope until the human approves it) or via a distributor that genuinely has a submission API. Do not build a `submit_for_publishing` tool against these platforms — it would be a tool that cannot do the thing it says |
+ |
 | Ads | End-customer connects their *own* ad account via OAuth (Meta Ads, Google Ads); their own budget, spend-threshold approval required |
 | Model access | Gemini is the default/platform model, via **Google ADK**. BYOK is still required (Principle 5) — a customer may connect their own Gemini, OpenAI, or Anthropic key |
 | Agent framework | **Google Agent Development Kit (ADK)**, Python, Apache 2.0 |

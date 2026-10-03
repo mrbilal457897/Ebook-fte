@@ -4,6 +4,7 @@ from google.adk.agents import LlmAgent
 from google.adk.models.base_llm import BaseLlm
 
 from publishing_advisor_agent.bookdata import build_book_data_toolset
+from publishing_advisor_agent.platformreq import build_platform_req_toolset
 from publishing_advisor_agent.instructions import PUBLISHING_ADVISOR_AGENT_INSTRUCTIONS
 
 
@@ -29,9 +30,9 @@ def build_publishing_advisor_agent(
         or os.getenv("PUBLISHING_ADVISOR_AGENT_MODEL", "gemini-flash-latest"),
         description=(
             "Advises on publishing-platform requirements (KDP, Apple Books, "
-            "IngramSpark, Draft2Digital) and records the customer's publishing "
-            "intent and submission status for a book. Does not submit to any "
-            "platform."
+            "IngramSpark, Draft2Digital), validates submission packages before "
+            "upload, and records the customer's publishing intent and submission "
+            "status for a book. Does not submit to any platform."
         ),
-        tools=[build_book_data_toolset()] if with_book_data_tools else [],
+        tools=[build_book_data_toolset(), build_platform_req_toolset()] if with_book_data_tools else [],
     )
