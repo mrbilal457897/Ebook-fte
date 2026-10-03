@@ -1,20 +1,79 @@
+/*
+ * Design tokens — single source of truth, mirrored in
+ * .claude/skills/ebook-fte-design-system/SKILL.md. Never hard-code a hex,
+ * px or font size in a component; add a token here instead.
+ *
+ * Direction: paper-and-ink. Deep ink navy canvas, warm cream (never pure
+ * white) for text and light surfaces, and exactly ONE accent from classic
+ * book-cover territory — muted old gold, the gilding convention of fine
+ * bookbinding. Do not add a second accent hue.
+ */
 :root {
-  /* Color — confirmed palette (2026-09-22): dark theme, purple primary */
-  --color-bg: #0b0d12;
-  --color-surface: #14171e;
-  --color-surface-raised: #1a1e27;
-  --color-border: #2a2f3a;
-  --color-primary: #6d5efc;
-  --color-primary-hover: #8274ff;
-  --color-text: #eef0f4;
-  --color-text-muted: #9aa0ac;
+  /* Ink is the canonical primitive; --color-bg aliases it. The book tokens
+     below are NOT overridden per theme: they describe a physical object
+     (board, paper, foil), which does not turn lavender in light mode. */
+  --color-ink: #121821;
+  --color-bg: var(--color-ink);
+  --color-surface: #1a212c;
+  --color-surface-raised: #222b38;
+  --color-border: #455163; /* decorative hairlines only — below 3:1 on purpose */
+  --color-border-strong: #5d6a7d; /* 3.24:1 — input edges, control boundaries */
+  --color-paper: #f3ebdc;
+  --color-paper-edge: #e4d8c3;
+  --color-text: #efe7d6;
+  --color-text-muted: #a8a79e;
+
+  --color-accent: #c2a15a;
+  --color-accent-hover: #c9a961;
+  --color-accent-ink: #12181f; /* text ON an accent fill — gold on gold is 1.4:1 */
+  --color-accent-deep: #7a5f17; /* accent on --color-paper */
+
   --color-success: #34d399;
   --color-warning: #fbbf24;
   --color-danger: #f87171;
 
-  /* Typography */
-  --font-display: "General Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+/*
+ * Light theme is opt-in only, never via prefers-color-scheme: the brand must
+ * not change because of an OS setting the customer did not choose. The old
+ * prefers-color-scheme block set color-scheme but no tokens, which painted
+ * light form controls and scrollbars onto a dark page.
+ *
+ * Semantic steps differ per theme because the dark values measure 1.37-2.27:1
+ * on cream — a mint "Live" badge at 1.58:1 is invisible. Meaning never changes
+ * with theme, only the step. See the Skill before adding a third theme.
+ *
+ * --color-bg stays darker than --color-surface here too: panels paint
+ * --color-bg on --color-surface to read as inset (streaming panel, inputs).
+ */
+:root[data-theme="light"] {
+  --color-bg: #eae2d2;
+  --color-surface: #f5efe3;
+  --color-surface-raised: #fbf7ef;
+  --color-border: #d8cdb7;
+  --color-border-strong: #8c7c5c;
+  --color-text: #1b222b;
+  --color-text-muted: #5c5648;
+  --color-accent: #6b5314;
+  --color-accent-hover: #7a5f17;
+  --color-accent-ink: #fbf7ef;
+  --color-success: #157347;
+  --color-warning: #8a5a08;
+  --color-danger: #b3261e;
+
+  color-scheme: light;
+}
+
+/* Typography — Literata is the serif Google ships for long-form reading, so
+   it reads "book" even at heading sizes; Inter stays neutral so dense UI is
+   usable and the serif is the only literary voice. Both self-hosted through
+   next/font in app/layout.tsx, so they are actually loaded — never name a
+   family here that layout.tsx does not provide. */
+:root {
+  --font-display: var(--font-literata), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   /* Font-size scale (1.25 ratio, 16px base) */
   --text-xs: 12px;
@@ -47,7 +106,10 @@
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* `clip`, not `hidden`: `overflow: hidden` on a root element promotes it to
+     a scroll container, which breaks GSAP ScrollTrigger pinning on the landing
+     hero. `clip` clips the overflow without creating a scroll container. */
+  overflow-x: clip;
 }
 
 body {
@@ -125,15 +187,18 @@ input {
   font-size: var(--text-base);
   color: var(--color-text);
   background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  /* border-strong, not border: an input edge is what identifies the control,
+     and --color-border measures 2.04:1 on --color-bg. WCAG 1.4.11 wants 3:1
+     for a boundary needed to recognize a control. */
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .field-input:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .field-error {
@@ -146,8 +211,9 @@ input {
   height: 48px;
   padding: 0 var(--space-6);
   font-size: var(--text-lg);
-  background: var(--color-primary);
-  color: var(--color-text);
+  background: var(--color-accent);
+  /* accent-ink, NOT --color-text: cream on a gold fill measures 1.4:1 */
+  color: var(--color-accent-ink);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -157,7 +223,7 @@ input {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-accent-hover);
 }
 
 .btn-primary:focus-visible {
@@ -177,7 +243,9 @@ input {
   font-size: var(--text-base);
   background: transparent;
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  /* border-strong: on a transparent fill this outline is the only thing
+     showing where the button starts and stops. */
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   cursor: pointer;
   transition:
@@ -190,7 +258,7 @@ input {
 }
 
 .btn-secondary:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -210,11 +278,12 @@ input {
   background: var(--color-border);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color-scheme: light;
-  }
-}
+/* The old `@media (prefers-color-scheme: light) { :root { color-scheme: light } }`
+   block is intentionally gone. It set native form-control and scrollbar
+   rendering to light while changing NO tokens, so on a light-OS machine it
+   painted light controls onto a dark page — it looked like a theme switch and
+   was not one. `color-scheme` now follows the active theme (set in :root and
+   :root[data-theme="light"]) and the theme itself is opt-in only. */
 
 /* ---- Generation workspace (T036) ---- */
 
@@ -300,16 +369,17 @@ input {
   font-family: inherit;
   color: var(--color-text);
   background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  /* border-strong for the same reason as .field-input */
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   resize: vertical;
   transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .textarea-input:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .composer-row {
@@ -348,8 +418,11 @@ input {
   background: var(--color-text-muted);
 }
 
+/* In-progress is a STATUS, so it uses --color-warning, never the accent.
+   Gold and amber are adjacent hues; a gold "working" dot next to an amber
+   "pending" badge would be unreadable. The pulse is the affordance, not hue. */
 .status-dot.is-working {
-  background: var(--color-primary);
+  background: var(--color-warning);
   animation: pulse 1.1s ease-in-out infinite;
 }
 
@@ -381,24 +454,26 @@ input {
   color: var(--color-text-muted);
 }
 
+/* A banner's border repeats the meaning its text colour already carries, so
+   the alert box is perceivable as a box and not just a coloured sentence. */
 .banner.is-warn {
   color: var(--color-warning);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-warning);
   border-radius: 8px;
   padding: var(--space-2) var(--space-3);
 }
 
 .banner.is-error {
   color: var(--color-danger);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-danger);
   border-radius: 8px;
   padding: var(--space-2) var(--space-3);
 }
 
 .banner.is-info {
   color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-primary);
+  border: 1px solid var(--color-border-strong);
+  border-left: 3px solid var(--color-accent);
   border-radius: 8px;
   padding: var(--space-2) var(--space-3);
   display: flex;
@@ -463,7 +538,7 @@ input {
   font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-primary-hover);
+  color: var(--color-accent-hover);
   border: 1px solid var(--color-border);
   border-radius: 999px;
   padding: var(--space-1) var(--space-3);
@@ -511,7 +586,7 @@ input {
 }
 
 .landing-signin:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -557,9 +632,9 @@ input {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 999px;
-  background: var(--color-primary);
-  color: var(--color-text);
+border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
   font-size: var(--text-sm);
   font-weight: 600;
 }
@@ -684,4 +759,77 @@ input {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin-right: auto;
+}
+
+/* ---- Theme toggle ---- */
+
+/* Fixed to the viewport rather than sitting in any page's flow: it is a
+   preference for the whole product, so it must be reachable from every
+   screen without every page reserving space for it. */
+.theme-toggle {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 50;
+}
+
+.theme-toggle-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 40px minimum touch target per the Skill checklist */
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.theme-toggle-button:hover {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.theme-toggle-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Both icons are always rendered; each theme shows exactly one. Swapping the
+   SVG in JS would remount the node and kill the cross-fade below. The moon is
+   the affordance offered FROM dark, so dark shows the moon. */
+.theme-toggle-icon {
+  position: absolute;
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.theme-toggle-button .theme-toggle-icon-moon {
+  opacity: 1;
+  transform: rotate(0deg);
+}
+
+.theme-toggle-button .theme-toggle-icon-sun {
+  opacity: 0;
+  transform: rotate(-60deg) scale(0.7);
+}
+
+:root[data-theme="light"] .theme-toggle-button .theme-toggle-icon-moon {
+  opacity: 0;
+  transform: rotate(60deg) scale(0.7);
+}
+
+:root[data-theme="light"] .theme-toggle-button .theme-toggle-icon-sun {
+  opacity: 1;
+  transform: rotate(0deg);
 }
