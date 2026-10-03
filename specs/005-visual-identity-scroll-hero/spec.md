@@ -1,11 +1,15 @@
 # Slice 005 - Visual identity + scroll-book hero (spec)
 
-**Date:** 2026-10-03
+**Date:** 2026-10-03 (Part II — landing structure — added same day, after
+Checkpoint 2; see §6 onward)
 **Supersedes:** nothing. **Constrains:** AGENTS.md §2 (Next.js 15 App Router),
 constitution Article VI (GSAP-driven motion) and Article II (spec before code).
 **Governing Skill:** `.claude/skills/ebook-fte-design-system/SKILL.md` — this
 slice updates that Skill's token block rather than creating a parallel set of
 tokens.
+
+Part I (§1–§5) covers tokens, typography, theming and the hero. Part II (§6–§15)
+covers the marketing landing page structure that consumes them.
 
 ## 1. Goal
 
@@ -266,5 +270,207 @@ how it looks and adds one animated moment on the page they first land on.
 The book on the landing page is decorative and represents no real book — it is
 a promise about the product, not a feature. It reveals no customer data, reads
 no tenant state, and starts nothing. The sign-up and sign-in paths are
-untouched, and the hero is not shown to a signed-in customer on their way into
-the workspace.
+untouched.
+
+A signed-in visitor still sees this page with the primary action pointed at
+their workspace, so the hero *is* shown to them. It remains decorative.
+
+---
+
+# Part II — Marketing landing page structure
+
+**Added:** 2026-10-03, after Checkpoint 2. **Governs:** `frontend/app/page.tsx`,
+`components/landing/*`, and the landing CSS in `globals.css`.
+
+## 6. Goal
+
+Restructure `/` into a paced marketing page whose section order follows a proven
+e-book-tool landing pattern (section order and pacing only), rewritten entirely
+in this product's own voice. The product is an AI worker, not a template editor;
+the reference structure is borrowed, its content is not.
+
+## 7. Section order
+
+| # | Section | Purpose |
+|---|---|---|
+| 1 | Hero | headline + one-line subhead + single primary CTA, with the scroll-book hero as the visual centrepiece. No paragraph competing with the visual. |
+| 2 | Social proof strip | one usage-stat line. **Placeholder until a real number exists** (§8.2). |
+| 3 | See it in action | the real "watch it write" streaming panel, looping. Replaces a template gallery, which we do not have. |
+| 4 | Feature rows | five capabilities, alternating image-left/text-right then text-left/image-right. |
+| 5 | How it works | 4–5 numbered steps mirroring the real flow. |
+| 6 | FAQ | collapsed accordion, the questions a non-technical first-time author actually has. |
+| 7 | Final CTA | one line + button, visually distinct background, no new information. |
+
+**Copy-density ceiling.** The hero sets the maximum. No feature row may run
+longer than the hero's density. If a feature needs a paragraph to explain
+itself, the feature needs a simpler description — not more words. Each feature
+row: one short headline, 2–3 sentences maximum, one visual, at most one
+secondary CTA.
+
+The five feature rows are content generation, cover design, formatting and
+export, publishing, and marketing. Publishing's wording is constrained by §8.1.
+
+## 8. Copy honesty constraints
+
+These are acceptance criteria, not style preferences. Each one prevents a
+specific false claim reaching a customer.
+
+### 8.1 Publishing is described as prepare-and-validate, never as submission
+
+AGENTS.md §2 and `specs/004-publishing-preflight/research.md` established that
+KDP, Apple Books and IngramSpark expose **no public self-publisher submission
+API**. KDP's only API is read-only sales data; all three are web portals.
+
+Therefore:
+
+- Permitted: we prepare the package, validate it against each platform's rules,
+  and hand the author a precise per-platform checklist.
+- Permitted: ISBN and category guidance; metadata mapping; trim/spine/margin
+  calculation.
+- **Forbidden:** "submit to KDP/Apple Books/IngramSpark directly", "publish with
+  one click", "we send it to the stores", or any wording implying we press the
+  Publish control.
+
+This is load-bearing: `submit_for_publishing` cannot be built against these
+platforms without becoming undisclosed browser automation. A tool with that
+name would be a tool that cannot do the thing it says.
+
+**This slice also fixes a live false claim.** `components/landing/landing.tsx`
+currently reads *"submit to the stores using your own accounts"* in the
+step-3 copy. That is inaccurate under the corrected decision and is corrected
+here.
+
+### 8.2 No fabricated numbers
+
+The social-proof strip must not invent a statistic. Until a real figure exists
+it renders an obviously-unfinished placeholder — visibly a blank to be filled,
+not a plausible-looking number. A believable fake ("12,000+ books created") is
+worse than an obvious gap, because it can ship unnoticed.
+
+The same rule bars invented review quotes, customer counts, ratings, and
+"trusted by" logo walls.
+
+### 8.3 No testimonial section at all, yet
+
+The section is **omitted entirely** rather than filled with placeholders. It
+returns when real, attributed quotes exist.
+
+### 8.4 No stock photography and no reference-site assets
+
+Visuals are CSS/SVG built from the Skill's tokens. No stock photos, no borrowed
+imagery, no mega-navigation with dozens of product links — this is one product.
+
+## 9. The "see it in action" section is a reconstruction, not a recording
+
+No real screen capture of the product exists yet. Rather than fabricate a
+product screenshot or ship a broken `<video>`, this section drives the **real
+`components/stream/stream-panel.tsx`** with real token styling and loops a
+scripted text sequence through it.
+
+This is honest — it is the actual UI component, not a picture of a UI — but it
+is not a recording of a real session. The component is written so a genuine
+capture can replace it later, and the reconstruction is flagged in a code
+comment so nobody mistakes it for a recording. If a real capture is produced,
+prefer it.
+
+## 10. Tenant threading (FR-010) survives the restructure
+
+`app/page.tsx` reads `?tenant=<slug>` from the arrival URL. A visitor who came
+through a subscribing company's branded link must stay bound to that tenant.
+
+- **Every** marketing link that leads toward auth carries `?tenant=<slug>`:
+  hero CTA, final CTA, nav sign-in, and any FAQ or feature CTA that links out.
+- A missing or blank `tenant` param must not produce `?tenant=` or
+  `?tenant=undefined`; the existing `trim() || "example-press"` fallback stands.
+- Signed-in state swaps the CTA target to `/generate` and must not drop the
+  slug.
+- The FAQ and the feature rows are marketing copy, not tenant-scoped routes; they
+  link to `#anchors` on the same page and therefore never carry a tenant param.
+
+This is the highest-risk regression in the restructure, because it is invisible
+until a real tenant link is followed end to end.
+
+## 11. Navigation
+
+Minimal: `Features` and `How it works` anchor links, `Sign in`, and the primary
+CTA. The theme toggle is fixed top-right by `layout.tsx`, so the header reserves
+that corner and must not collide with it.
+
+**No `Pricing` link.** There is no `/pricing` route; the only routes are `/`,
+`/signin`, `/signup`, `/generate`, `/settings`. A Pricing link would 404. Real
+pricing depends on Lago plan decisions that are not yet made, and the free-tier
+cap of 3 generations is the only confirmed commercial fact.
+
+## 12. FAQ behaviour
+
+- Collapsed by default.
+- **One open at a time** — opening a question closes the previous one.
+- Implemented as a real accordion: each trigger is a `<button>` with
+  `aria-expanded` and `aria-controls`; the panel is labelled by its trigger.
+- Keyboard operable, and the FAQ answers "remove fear" per the product's
+  first-time-author requirement.
+- Required questions: writing experience needed; what if I dislike the output;
+  do I own the rights; what publishing actually costs; can I bring my own
+  OpenAI/Anthropic key (BYOK); what happens after 3 free generations.
+
+## 13. Feature rows alternate
+
+Text/image sides alternate so a long page stays rhythmic. On mobile both stack
+in a single column, text first, in DOM order — the alternation is a desktop
+layout effect and must not reorder content for screen readers or keyboard users.
+
+## 14. Acceptance criteria
+
+**Structure**
+
+19. `/` renders the seven sections in the order in §7.
+20. No section exceeds the hero's copy density; each feature row is at most 2–3
+    sentences.
+21. The hero shows exactly one primary action.
+22. Feature rows alternate sides on desktop and stack text-first on mobile.
+23. The FAQ is collapsed by default and keeps at most one panel open.
+24. The FAQ triggers are real buttons with `aria-expanded`/`aria-controls`.
+25. No `Pricing` link or any other link to a non-existent route exists.
+
+**Honesty**
+
+26. No string anywhere in the landing page implies the product submits to a
+    publishing platform (§8.1). The pre-existing "submit to the stores" claim is
+    gone.
+27. The social-proof strip contains no invented statistic, and its placeholder is
+    visibly a placeholder.
+28. No testimonial/review/rating/logo-wall content is present.
+29. No stock-photography or borrowed-asset references.
+
+**Tenant**
+
+30. Following `/?tenant=acme` through the hero CTA, the final CTA, and nav
+    sign-in lands on `/signup?tenant=acme` (or `/generate` when signed in).
+31. No link renders `?tenant=undefined`, `?tenant=null`, or a bare `?tenant=`.
+
+**Motion and theme**
+
+32. The scroll-book hero is the only pinned/scroll-driven element on the page,
+    and no product screen gained one (§3.7, AC 16 still holds).
+33. Under `prefers-reduced-motion: reduce` the whole page is readable with no
+    pinning and no hidden content — including the "see it in action" loop, which
+    shows its final state rather than animating indefinitely.
+34. Both themes are legible: no surface becomes paper-on-paper, no accent fill
+    loses its `--color-accent-ink` label.
+
+**Gates**
+
+35. `npm run lint`, `npm run test` and a production build pass.
+36. Every new class is defined in `globals.css` and resolves through a token; no
+    new one-off colour or font is introduced for this page.
+
+## 15. Pre-launch blockers (not resolvable by this slice)
+
+These are recorded so they are not mistaken for done:
+
+- The social-proof statistic needs a real number.
+- The "see it in action" section should become a real capture.
+- Testimonials need real, attributed quotes.
+- Pricing copy needs the Lago plan decisions.
+- Nothing here has been viewed in a browser; both themes are verified by static
+  analysis only (see the note in commit `cbf047c`).
