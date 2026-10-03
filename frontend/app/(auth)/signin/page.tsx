@@ -48,8 +48,9 @@ function SigninForm() {
       }
       await linkCurrentSession(tenantSlug)
       router.replace("/generate")
-    } catch {
-      setError("Sign-in failed — try again.")
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Sign-in failed — try again."
+      setError(msg)
     } finally {
       setBusy(false)
     }
@@ -57,11 +58,22 @@ function SigninForm() {
 
   async function onGoogle() {
     setError("")
-    const { authClient } = await import("@/lib/auth/client")
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: `/signin?tenant=${encodeURIComponent(tenantSlug)}`,
-    })
+    setBusy(true)
+    try {
+      const { authClient } = await import("@/lib/auth/client")
+      const res = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: `/generate?tenant=${encodeURIComponent(tenantSlug)}`,
+      })
+      if (res?.error) {
+        setError(res.error.message || "Google sign-in failed")
+        setBusy(false)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Google sign-in failed — try again."
+      setError(msg)
+      setBusy(false)
+    }
   }
 
   return (
