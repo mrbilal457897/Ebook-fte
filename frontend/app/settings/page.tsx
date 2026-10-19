@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import gsap from "gsap"
+import { prefersReducedMotion } from "@/lib/motion-preference"
 
 import GenerateShell from "@/components/generate/generate-shell"
 
@@ -64,7 +65,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (prefersReducedMotion()) return
     const ctx = gsap.context(() => {
       gsap.from(".app-panel > *", {
         opacity: 0,
@@ -156,9 +157,9 @@ export default function SettingsPage() {
         </header>
 
         <section className="banner is-info">
-          <strong>Your key, your account.</strong> When you connect a provider key, your
-          generations run on it and are billed to you directly by that provider. We store it
-          encrypted and never show it back to you.
+          <strong>Your key, your account.</strong> When you connect a provider key, your generations
+          run on it and are billed to you directly by that provider. We store it encrypted and never
+          show it back to you.
         </section>
 
         <form className="field" onSubmit={saveKey}>
@@ -209,8 +210,8 @@ export default function SettingsPage() {
             <p className="landing-feature-body">Loading…</p>
           ) : credentials.length === 0 ? (
             <p className="landing-feature-body">
-              No keys connected yet — you are generating on our platform key, which has a small
-              free allowance.
+              No keys connected yet — you are generating on our platform key, which has a small free
+              allowance.
             </p>
           ) : (
             <ul className="credential-list">

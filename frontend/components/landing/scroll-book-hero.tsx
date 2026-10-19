@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { useEffect, useRef } from "react";
-import gsap from "gsap";
-import ScrollTrigger from "gsap/ScrollTrigger";
+import { useEffect, useRef } from "react"
+import { gsap, ScrollTrigger } from "@/lib/gsap-setup"
+import { REDUCED_MOTION_MQ } from "@/lib/motion-preference"
 
 /**
  * Scroll-book hero: the marketing centrepiece for `/`.
@@ -25,38 +25,39 @@ import ScrollTrigger from "gsap/ScrollTrigger";
  */
 
 export default function ScrollBookHero() {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
+    const root = rootRef.current
+    if (!root) return
 
-    // Mobile browser chrome showing/hiding changes the viewport height
-    // constantly; refreshing on every one of those is pure wasted work.
-    ScrollTrigger.config({ ignoreMobileResize: true });
+    /*
+     * Plugin registration and ScrollTrigger.config({ ignoreMobileResize: true })
+     * both live in lib/gsap-setup.ts, imported above. That config is global — it
+     * has to apply to the whole page, not just whichever component happened to
+     * remember it — so it does not belong in one component's effect.
+     */
 
+    /*
+     * Triggers are created INSIDE the context, deliberately.
+     *
+     * React 19 StrictMode double-mounts effects in development. A trigger
+     * created outside the context is not torn down by ctx.revert(), so the
+     * second mount leaves a duplicate behind and the animation runs twice per
+     * scroll — reproduces only in dev, and is very hard to see. (Plugin
+     * *registration* moved to lib/gsap-setup.ts; only trigger creation is the
+     * context's job.)
+     */
     const ctx = gsap.context(() => {
-      /*
-       * registerPlugin INSIDE the context, deliberately.
-       *
-       * React 19 StrictMode double-mounts effects in development. A trigger
-       * created outside the context is not torn down by ctx.revert(), so the
-       * second mount leaves a duplicate behind and the animation runs twice per
-       * scroll — reproduces only in dev, and is very hard to see.
-       */
-      gsap.registerPlugin(ScrollTrigger);
+      const stage = root.querySelector<HTMLElement>(".scroll-book-stage")
+      const book = root.querySelector<HTMLElement>(".scroll-book-object")
+      const cover = root.querySelector<HTMLElement>(".scroll-book-cover")
+      const block = root.querySelector<HTMLElement>(".scroll-book-block")
+      const leaves = gsap.utils.toArray<HTMLElement>(".scroll-book-leaf")
+      const copyIn = root.querySelectorAll<HTMLElement>(".scroll-book-copy-late")
+      const caption = root.querySelector<HTMLElement>(".scroll-book-caption")
 
-      const stage = root.querySelector<HTMLElement>(".scroll-book-stage");
-      const book = root.querySelector<HTMLElement>(".scroll-book-object");
-      const cover = root.querySelector<HTMLElement>(".scroll-book-cover");
-      const block = root.querySelector<HTMLElement>(".scroll-book-block");
-      const leaves = gsap.utils.toArray<HTMLElement>(".scroll-book-leaf");
-      const copyIn = root.querySelectorAll<HTMLElement>(
-        ".scroll-book-copy-late"
-      );
-      const caption = root.querySelector<HTMLElement>(".scroll-book-caption");
-
-      if (!stage || !book || !cover || !block || leaves.length === 0) return;
+      if (!stage || !book || !cover || !block || leaves.length === 0) return
 
       /*
        * Pin the whole hero SECTION, not just the book stage.
@@ -71,8 +72,7 @@ export default function ScrollBookHero() {
        * `closest` rather than a prop so the fallback is local: if this component
        * is ever used outside a hero section, it pins its own stage.
        */
-      const pinTarget =
-        root.closest<HTMLElement>(".landing-hero") ?? stage;
+      const pinTarget = root.closest<HTMLElement>(".landing-hero") ?? stage
 
       /*
        * The reduced-motion variant is a DESIGNED static state, not an absence:
@@ -81,22 +81,22 @@ export default function ScrollBookHero() {
        * applied before any measurement so the first layout pass is measured
        * against the state that will actually render.
        */
-      const mm = gsap.matchMedia();
+      const mm = gsap.matchMedia()
 
       mm.add(
         {
           isDesktop: "(min-width: 768px)",
           isMobile: "(max-width: 767px)",
-          reduce: "(prefers-reduced-motion: reduce)",
+          reduce: REDUCED_MOTION_MQ,
         },
         (context) => {
           const { isDesktop, reduce } = context.conditions as {
-            isDesktop: boolean;
-            isMobile: boolean;
-            reduce: boolean;
-          };
+            isDesktop: boolean
+            isMobile: boolean
+            reduce: boolean
+          }
 
-          if (reduce) return;
+          if (reduce) return
 
           /*
            * Hide the late copy from JS, not from CSS.
@@ -108,8 +108,8 @@ export default function ScrollBookHero() {
            * armed the animation ever hides anything. Same reason the reduced
            * motion book state is a media query rather than a set attribute.
            */
-          gsap.set(copyIn, { opacity: 0, y: 12 });
-          if (caption) gsap.set(caption, { opacity: 0, y: 8 });
+          gsap.set(copyIn, { opacity: 0, y: 12 })
+          if (caption) gsap.set(caption, { opacity: 0, y: 8 })
 
           // Mobile keeps the interaction but drops the choreography: a 3D
           // page-turn is unreadable at 375px and costs the same frame budget.
@@ -117,16 +117,43 @@ export default function ScrollBookHero() {
           // design decision, so it should be legible in the code.
           const beats = isDesktop
             ? { tilt: 1, reveal: 1, turn: 1.5, settle: 1.5 }
-            : { tilt: 0.6, reveal: 0.6, turn: 0, settle: 0.6 };
+            : { tilt: 0.6, reveal: 0.6, turn: 0, settle: 0.6 }
 
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: pinTarget,
               start: "top top",
-              end: isDesktop ? "+=500%" : "+=180%",
+              /*
+               * PIN LENGTH WAS `+=500%` ON DESKTOP. Five viewport-heights of
+               * pinned scroll to play four beats is far more scroll than the
+               * animation needs, and that surplus is what produced the reported
+               * symptom: past roughly the second beat the timeline had finished,
+               * so further scrolling moved a *static* hero and then released the
+               * pin, and everything below appeared to "come up" from nowhere
+               * instead of flowing. The end distance is now sized to the beats
+               * (about 300% desktop / 150% mobile) so the pin releases the moment
+               * the last beat lands.
+               */
+              end: isDesktop ? "+=300%" : "+=150%",
               pin: true,
-              scrub: 0.8,
+              /*
+               * `scrub` was 0.8, an 800ms catch-up. That reads as the hero
+               * "drifting against" the scroll, which is the second half of the
+               * same complaint — direction feels wrong because the render lags
+               * the input by most of a second. 0.35 keeps a little smoothing (raw
+               * 0 makes a scrubbed timeline jitter on a trackpad) without the lag.
+               */
+              scrub: 0.35,
               anticipatePin: 1,
+              /*
+               * The pin spacer height is computed from the section's measured
+               * height, so if the hero's height changes — a longer headline, a
+               * wider viewport, the aurora changing nothing — the pin is re-measured
+               * instead of ending at a stale offset. Without this, refreshing on a
+               * different width left the timeline ending early or late, which looks
+               * exactly like a direction bug.
+               */
+              invalidateOnRefresh: true,
               /*
                * will-change is scoped to the pinned window rather than declared
                * in CSS: left on permanently it keeps a compositing layer alive
@@ -134,10 +161,10 @@ export default function ScrollBookHero() {
                * defeating the repaint avoidance it was meant to buy.
                */
               onToggle: (self) => {
-                book.style.willChange = self.isActive ? "transform" : "";
+                book.style.willChange = self.isActive ? "transform" : ""
               },
             },
-          });
+          })
 
           // ---- Beat 0 — closed book ------------------------------------------
           // A slight tilt reads as "an object on a table" rather than "a
@@ -151,8 +178,8 @@ export default function ScrollBookHero() {
               duration: beats.tilt,
               ease: "power2.inOut",
             },
-            0
-          );
+            0,
+          )
 
           // The block's fore-edge peeking from under the cover: before anything
           // moves, the only cue that there is paper inside.
@@ -160,31 +187,27 @@ export default function ScrollBookHero() {
             block,
             { xPercent: 1.5 },
             { xPercent: 0, duration: beats.tilt, ease: "power1.out" },
-            0
-          );
+            0,
+          )
 
           // ---- Beat 1 — cover swings off the spine ---------------------------
-          tl.to(
-            cover,
-            { rotateY: -180, duration: beats.reveal, ease: "power2.inOut" },
-            beats.tilt
-          );
+          tl.to(cover, { rotateY: -180, duration: beats.reveal, ease: "power2.inOut" }, beats.tilt)
 
           if (isDesktop) {
             // ---- Beat 2 — three leaves turn --------------------------------
             // Overlapped by 0.08 each so they read as one shuffle, not three
             // separate clicks.
-            const turnStart = beats.tilt + beats.reveal;
+            const turnStart = beats.tilt + beats.reveal
             leaves.forEach((leaf, i) => {
               tl.to(
                 leaf,
                 { rotateY: -180, duration: 1.1, ease: "power2.inOut" },
-                turnStart + i * 0.08
-              );
-            });
+                turnStart + i * 0.08,
+              )
+            })
 
             // ---- Beat 3 — settles open -------------------------------------
-            const settleStart = turnStart + 1.1 + (leaves.length - 1) * 0.08;
+            const settleStart = turnStart + 1.1 + (leaves.length - 1) * 0.08
             tl.to(
               leaves,
               {
@@ -194,8 +217,8 @@ export default function ScrollBookHero() {
                 duration: beats.settle,
                 ease: "power2.out",
               },
-              settleStart
-            );
+              settleStart,
+            )
 
             // Copy arrives with the settle, not before: the book opening is
             // what earns attention, and copy animating over a still book
@@ -209,24 +232,24 @@ export default function ScrollBookHero() {
                 stagger: 0.08,
                 ease: "power1.out",
               },
-              settleStart + 0.25
-            );
+              settleStart + 0.25,
+            )
 
             if (caption) {
               tl.fromTo(
                 caption,
                 { opacity: 0, y: 8 },
                 { opacity: 1, y: 0, duration: 0.4, ease: "power1.out" },
-                settleStart + 0.45
-              );
+                settleStart + 0.45,
+              )
             }
           } else {
             // Mobile: one leaf turns. The choreography is cut, not compressed.
             tl.to(
               leaves[0],
               { rotateY: -172, duration: beats.settle, ease: "power2.out" },
-              beats.tilt + beats.reveal
-            );
+              beats.tilt + beats.reveal,
+            )
             tl.to(
               copyIn,
               {
@@ -236,22 +259,22 @@ export default function ScrollBookHero() {
                 stagger: 0.08,
                 ease: "power1.out",
               },
-              beats.tilt + beats.reveal + 0.15
-            );
+              beats.tilt + beats.reveal + 0.15,
+            )
           }
-        }
-      );
+        },
+      )
 
       // Pin start depends on final text layout, so a late webfont swap would
       // otherwise leave the trigger measuring fallback metrics.
-      document.fonts?.ready.then(() => ScrollTrigger.refresh());
-    }, root);
+      document.fonts?.ready.then(() => ScrollTrigger.refresh())
+    }, root)
 
     // Reverts every tween AND the ScrollTrigger, and un-pins the stage so no
     // spacer is left behind. Removing this line leaks a pinned trigger per
     // mount in dev StrictMode.
-    return () => ctx.revert();
-  }, []);
+    return () => ctx.revert()
+  }, [])
 
   return (
     <div className="scroll-book" ref={rootRef}>
@@ -303,5 +326,5 @@ export default function ScrollBookHero() {
         </span>
       </div>
     </div>
-  );
+  )
 }

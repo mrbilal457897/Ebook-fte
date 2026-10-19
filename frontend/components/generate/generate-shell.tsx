@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import gsap from "gsap"
+import { prefersReducedMotion } from "@/lib/motion-preference"
 
 /**
  * Generation workspace shell: centered panel on the dark canvas with a GSAP
@@ -14,7 +15,7 @@ export default function GenerateShell({ children }: { children: React.ReactNode 
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (prefersReducedMotion()) return
 
     const ctx = gsap.context(() => {
       gsap.from(".app-panel", { opacity: 0, y: 12, duration: 0.3, ease: "power2.out" })

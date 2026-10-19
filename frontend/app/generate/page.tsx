@@ -1,12 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import Composer from "@/components/generate/composer"
 import GenerateShell from "@/components/generate/generate-shell"
 import UpgradePrompt from "@/components/generate/upgrade-prompt"
 import StreamPanel from "@/components/stream/stream-panel"
 import type { StreamStatus } from "@/components/stream/stream-panel"
+import { ensureCurrentSessionLinked } from "@/lib/auth/client-link"
 import { streamGenerate } from "@/lib/sse-client"
 
 type AccountState = {
@@ -26,7 +27,7 @@ type Refetched = {
  * "still working" state when the first token drags (FR-004), and renders an
  * upgrade prompt when the free allowance is spent (US3 groundwork).
  */
-export default function GeneratePage() {
+function GenerateWorkspace() {
   const [prompt, setPrompt] = useState("")
   const [text, setText] = useState("")
   const [status, setStatus] = useState<StreamStatus>("idle")
@@ -60,7 +61,22 @@ export default function GeneratePage() {
     if (!/fte_device_id=/.test(document.cookie)) {
       document.cookie = `fte_device_id=${crypto.randomUUID()}; path=/; max-age=63072000; samesite=lax`
     }
-    void refreshAccount()
+    // The `accounts` row is what `resolveTenancy` and every tenant-scoped query
+    // resolve against. It used to be created only by the first-sign-in seam on
+    // /signup and /signin, so anyone who landed straight on /generate while
+    // already authenticated (bookmark, refresh, a direct link) had no row and
+    // every generation failed with `no_account`. Bind on arrival, before the
+    // allowance read, so the workspace is usable the moment it renders.
+    let cancelled = false
+    async function bindAndLoad() {
+      const slug = new URLSearchParams(window.location.search).get("tenant") ?? "example-press"
+      await ensureCurrentSessionLinked(slug)
+      if (!cancelled) await refreshAccount()
+    }
+    void bindAndLoad()
+    return () => {
+      cancelled = true
+    }
   }, [refreshAccount])
 
   // US4: after a refresh/close, offer to retrieve the last interrupted draft.
@@ -188,5 +204,18 @@ export default function GeneratePage() {
         />
       </div>
     </GenerateShell>
+  )
+}
+
+/**
+ * `Suspense` matches the (auth) pages: the workspace reads the entry tenant
+ * from the URL on mount, and a client component that does must sit inside a
+ * boundary or the whole route bails out of prerendering.
+ */
+export default function GeneratePage() {
+  return (
+    <Suspense fallback={<GenerateShell>{null}</GenerateShell>}>
+      <GenerateWorkspace />
+    </Suspense>
   )
 }

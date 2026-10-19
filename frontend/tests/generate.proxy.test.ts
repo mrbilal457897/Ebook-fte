@@ -19,10 +19,12 @@ vi.mock("@/lib/account-info", () => ({
 import { getSession } from "@/lib/auth/session"
 import type { AuthSession } from "@/lib/auth/session"
 import { getActiveByokCredential } from "@/lib/account-info"
+import { resolveTenancy } from "@/lib/tenancy"
 import { POST } from "@/app/api/generate/route"
 
 const mockGetSession = vi.mocked(getSession)
 const mockGetActiveByokCredential = vi.mocked(getActiveByokCredential)
+const mockResolveTenancy = vi.mocked(resolveTenancy)
 const mockFetch = vi.fn()
 
 function sessionFor(userId: string, email = ""): AuthSession {
@@ -51,6 +53,18 @@ describe("US2 proxy: /api/generate forwards to the Orchestrator (T035)", () => {
   beforeEach(() => {
     mockGetSession.mockReset()
     mockFetch.mockReset()
+    // Both are `mockReset`ed *and* re-seeded: resetting alone would clear the
+    // factory's default and leak one test's stub (an active BYOK credential)
+    // into the next.
+    mockResolveTenancy.mockReset()
+    mockResolveTenancy.mockResolvedValue({
+      tenantId: "tenant-1",
+      accountId: "acct-1",
+      freeTierCount: 1,
+      freeTierLimit: 3,
+    })
+    mockGetActiveByokCredential.mockReset()
+    mockGetActiveByokCredential.mockResolvedValue({ credentialId: null, provider: null })
     process.env.ORCHESTRATOR_URL = "http://localhost:8080"
     process.env.INTERNAL_AUTH_TOKEN = "test-secret"
     vi.stubGlobal("fetch", mockFetch)
@@ -138,5 +152,81 @@ describe("US2 proxy: /api/generate forwards to the Orchestrator (T035)", () => {
 
     expect(res.status).toBe(402)
     expect(await res.json()).toEqual({ code: "free_tier_exhausted", upgrade: true })
+  })
+})
+
+/**
+ * Regression: an authenticated session with no `accounts` row used to escape
+ * `resolveTenancy` uncaught, so the customer's very first generation returned
+ * an opaque 500 with a stack trace instead of a code the UI could act on.
+ */
+describe("US2 proxy: tenancy and upstream faults are reported, not thrown (T035)", () => {
+  beforeEach(() => {
+    mockGetSession.mockReset()
+    mockFetch.mockReset()
+    mockResolveTenancy.mockReset()
+    mockGetActiveByokCredential.mockReset()
+    process.env.ORCHESTRATOR_URL = "http://localhost:8080"
+    process.env.INTERNAL_AUTH_TOKEN = "test-secret"
+    vi.stubGlobal("fetch", mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.resetModules()
+  })
+
+  it("returns 409 no_account when the session is not bound to a tenant", async () => {
+    mockGetSession.mockResolvedValue(sessionFor("u-1"))
+    mockResolveTenancy.mockRejectedValue(new Error("no_account: session has no account row"))
+
+    const res = await POST(request("a pirate memoir"))
+
+    expect(res.status).toBe(409)
+    expect((await res.json()).code).toBe("no_account")
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it("returns 409 ambiguous_tenant rather than picking one tenant arbitrarily", async () => {
+    mockGetSession.mockResolvedValue(sessionFor("u-1"))
+    mockResolveTenancy.mockRejectedValue(
+      new Error("ambiguous_tenant: session resolves to 2 accounts"),
+    )
+
+    const res = await POST(request("a pirate memoir"))
+
+    expect(res.status).toBe(409)
+    expect((await res.json()).code).toBe("ambiguous_tenant")
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it("returns 502 upstream_unavailable when the Orchestrator is unreachable", async () => {
+    mockGetSession.mockResolvedValue(sessionFor("u-1"))
+    mockResolveTenancy.mockResolvedValue({
+      tenantId: "tenant-1",
+      accountId: "acct-1",
+      freeTierCount: 1,
+      freeTierLimit: 3,
+    })
+    mockGetActiveByokCredential.mockResolvedValue({ credentialId: null, provider: null })
+    mockFetch.mockRejectedValue(new TypeError("fetch failed"))
+
+    const res = await POST(request("a pirate memoir"))
+
+    expect(res.status).toBe(502)
+    const body = (await res.json()) as { code: string }
+    expect(body.code).toBe("upstream_unavailable")
+  })
+
+  it("does not leak an unrecognised internal error message to the client", async () => {
+    mockGetSession.mockResolvedValue(sessionFor("u-1"))
+    mockResolveTenancy.mockRejectedValue(new Error("ECONNREFUSED 10.0.0.5:5432"))
+
+    const res = await POST(request("a pirate memoir"))
+
+    expect(res.status).toBe(409)
+    const body = (await res.json()) as { code: string }
+    expect(body.code).toBe("internal")
+    expect(JSON.stringify(body)).not.toContain("10.0.0.5")
   })
 })

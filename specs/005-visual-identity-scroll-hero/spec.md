@@ -291,24 +291,31 @@ the reference structure is borrowed, its content is not.
 
 ## 7. Section order
 
+*(Rewritten 2026-10-08 by Part IV, §25–§29. The pre-Part-IV order — hero,
+social proof, see-it-in-action, feature rows, how-it-works, FAQ, final CTA — is
+superseded.)*
+
 | # | Section | Purpose |
 |---|---|---|
-| 1 | Hero | headline + one-line subhead + single primary CTA, with the scroll-book hero as the visual centrepiece. No paragraph competing with the visual. |
-| 2 | Social proof strip | one usage-stat line. **Placeholder until a real number exists** (§8.2). |
-| 3 | See it in action | the real "watch it write" streaming panel, looping. Replaces a template gallery, which we do not have. |
-| 4 | Feature rows | five capabilities, alternating image-left/text-right then text-left/image-right. |
-| 5 | How it works | 4–5 numbered steps mirroring the real flow. |
-| 6 | FAQ | collapsed accordion, the questions a non-technical first-time author actually has. |
-| 7 | Final CTA | one line + button, visually distinct background, no new information. |
+| 1 | Hero | split headline + one-line subhead + **one primary CTA and at most one secondary in-page anchor** + a trust row, with the tilt/float book as the visual centrepiece. No paragraph competing with the visual. |
+| 2 | Social proof strip | three **real, non-usage product facts** (free books, platforms, export formats) that count up on scroll. Any *usage* figure stays a **placeholder until a real number exists** (§8.2). |
+| 3 | Capabilities bento | six cards, staggered entrance: writing, covers, formats, publishing package, marketing, audiobook narration. Publishing's wording is constrained by §8.1. |
+| 4 | How it works (tour) | TOC-style steps mirroring the real flow, with a scroll-linked sticky preview; step 3's preview is the real "watch it write" streaming panel, looping (§9's reconstruction rules now apply to this step). |
+| 5 | Who it's for | honest two-column fit / not-fit. No invented personas (§26). |
+| 6 | Founder note | why the product exists, first-person, unattributed until a real person exists (§26). |
+| 7 | Pricing card | the free tier's real facts only. No invented prices (§26). |
+| 8 | FAQ | collapsed accordion, the questions a non-technical first-time author actually has (§12 unchanged). |
+| 9 | Final CTA | one line + button, visually distinct background, no new information. |
+| 10 | Footer | brand, the two real destinations, tenant threading (unchanged). |
 
-**Copy-density ceiling.** The hero sets the maximum. No feature row may run
-longer than the hero's density. If a feature needs a paragraph to explain
-itself, the feature needs a simpler description — not more words. Each feature
-row: one short headline, 2–3 sentences maximum, one visual, at most one
-secondary CTA.
+Plus a **mobile sticky CTA bar** (below 768px only) that appears once the hero
+is behind the visitor and hides while the final CTA is on screen (§28).
 
-The five feature rows are content generation, cover design, formatting and
-export, publishing, and marketing. Publishing's wording is constrained by §8.1.
+**Copy-density ceiling.** The hero sets the maximum. No section may run longer
+than the hero's density. If a card or step needs a paragraph to explain itself,
+it needs a simpler description — not more words. Each bento card: one short
+headline, 1–3 sentences maximum, one visual. Each tour step: one short headline,
+2–3 sentences maximum.
 
 ## 8. Copy honesty constraints
 
@@ -392,14 +399,19 @@ until a real tenant link is followed end to end.
 
 ## 11. Navigation
 
-Minimal: `Features` and `How it works` anchor links, `Sign in`, and the primary
-CTA. The theme toggle is fixed top-right by `layout.tsx`, so the header reserves
-that corner and must not collide with it.
+*(Amended 2026-10-08, Part IV.)*
 
-**No `Pricing` link.** There is no `/pricing` route; the only routes are `/`,
-`/signin`, `/signup`, `/generate`, `/settings`. A Pricing link would 404. Real
-pricing depends on Lago plan decisions that are not yet made, and the free-tier
-cap of 3 generations is the only confirmed commercial fact.
+`Features`, `How it works`, `Pricing`, `FAQ` — all four are **in-page anchors**
+(`#features`, `#how-it-works`, `#pricing`, `#faq`), plus `Sign in` and the
+primary CTA. The theme toggle is fixed top-right by `layout.tsx`, so the header
+reserves that corner and must not collide with it.
+
+`Pricing` was dropped when this section list was written because there was no
+pricing section to point at and no `/pricing` route (a route link would 404).
+Part IV adds the pricing *section* (§7 row 7), so the anchor now resolves
+on-page. Still **no `/pricing` route link**: the only routes remain `/`,
+`/signin`, `/signup`, `/generate`, `/settings`, and real paid pricing still
+depends on Lago plan decisions that have not been made (§15, §26).
 
 ## 12. FAQ behaviour
 
@@ -415,6 +427,11 @@ cap of 3 generations is the only confirmed commercial fact.
 
 ## 13. Feature rows alternate
 
+> **Superseded 2026-10-08 by Part IV (§7 row 3).** The five alternating feature
+> rows are retired and replaced by the six-card capabilities bento; the rule
+> below survives as the bento's rule — nothing reorders content for screen
+> readers or keyboard users, and mobile is a single column in DOM order.
+
 Text/image sides alternate so a long page stays rhythmic. On mobile both stack
 in a single column, text first, in DOM order — the alternation is a desktop
 layout effect and must not reorder content for screen readers or keyboard users.
@@ -423,22 +440,28 @@ layout effect and must not reorder content for screen readers or keyboard users.
 
 **Structure**
 
-19. `/` renders the seven sections in the order in §7.
-20. No section exceeds the hero's copy density; each feature row is at most 2–3
-    sentences.
-21. The hero shows exactly one primary action.
-22. Feature rows alternate sides on desktop and stack text-first on mobile.
+19. `/` renders the ten sections in the order in §7, plus the mobile sticky CTA
+    bar (§28) on viewports below 768px.
+20. No section exceeds the hero's copy density; each bento card is at most 3
+    sentences and each tour step at most 2–3.
+21. The hero shows exactly one primary action; the only other hero action is a
+    secondary **in-page anchor** (never a route link).
+22. The capabilities bento is a single column in DOM order on mobile, and no
+    layout reorders content for screen readers or keyboard users.
 23. The FAQ is collapsed by default and keeps at most one panel open.
 24. The FAQ triggers are real buttons with `aria-expanded`/`aria-controls`.
-25. No `Pricing` link or any other link to a non-existent route exists.
+25. No link points at a non-existent route; `#pricing` resolves to the on-page
+    pricing section.
 
 **Honesty**
 
 26. No string anywhere in the landing page implies the product submits to a
     publishing platform (§8.1). The pre-existing "submit to the stores" claim is
     gone.
-27. The social-proof strip contains no invented statistic, and its placeholder is
-    visibly a placeholder.
+27. The social-proof strip contains no invented statistic: the shipped figures
+    are real product facts (free-books cap, platform count, format count), and
+    any *usage* figure remains visibly a placeholder until a real one exists
+    (§8.2).
 28. No testimonial/review/rating/logo-wall content is present.
 29. No stock-photography or borrowed-asset references.
 
@@ -450,11 +473,17 @@ layout effect and must not reorder content for screen readers or keyboard users.
 
 **Motion and theme**
 
-32. The scroll-book hero is the only pinned/scroll-driven element on the page,
-    and no product screen gained one (§3.7, AC 16 still holds).
+32. *(Amended 2026-10-08, Part IV.)* **No GSAP-pinned element exists on the
+    page at all** — the scroll-book pin is retired (§25), and no product screen
+    has ever had one (AC 16 still holds). The how-it-works tour's sticky preview
+    is CSS `position: sticky` with scroll-linked step activation only: no pin,
+    no scrub, no scroll takeover.
 33. Under `prefers-reduced-motion: reduce` the whole page is readable with no
-    pinning and no hidden content — including the "see it in action" loop, which
-    shows its final state rather than animating indefinitely.
+    pinning and no hidden content — including the writing demo in the
+    how-it-works tour, which shows its final state rather than animating
+    indefinitely. The tour's preview swap is instant (transitions are zeroed by
+    the global reset) and every step's text is visible regardless of which
+    preview is active.
 34. Both themes are legible: no surface becomes paper-on-paper, no accent fill
     loses its `--color-accent-ink` label.
 
@@ -474,3 +503,246 @@ These are recorded so they are not mistaken for done:
 - Pricing copy needs the Lago plan decisions.
 - Nothing here has been viewed in a browser; both themes are verified by static
   analysis only (see the note in commit `cbf047c`).
+
+---
+
+# Part III — Landing page polish: preloader, nav, reveal, texture
+
+**Added:** 2026-10-05. **Governs:** `frontend/components/landing/*`,
+`frontend/lib/gsap-setup.ts`, the landing CSS in `globals.css`, and the GSAP
+section of `.claude/skills/ebook-fte-design-system/SKILL.md`.
+
+Part III implements Part II (which was specified but only §7's first section had
+been built) and adds the page-chrome and micro-interaction rules from the
+2026-10-05 landing brief. Where Part III is silent, Part I and Part II stand
+unchanged.
+
+## 16. GSAP plugin licensing — resolved, premise corrected
+
+The brief instructed: *confirm licensing before using SplitText or
+ScrollSmoother, and fall back if unlicensed.* Verified, 2026-10-05:
+
+- The project pins `gsap@3.15.0`. Since **3.13**, Webflow's acquisition made every
+  plugin free, including the former Club-GreenSock-only ones.
+- `frontend/node_modules/gsap/dist/SplitText.js` and `.../ScrollSmoother.js` both
+  exist in that package, under the standard licence
+  (`https://gsap.com/standard-license`, "Subject to the terms at", i.e. no
+  separate Club entitlement).
+- The npm README states it: *"GSAP is now 100% FREE including ALL of the bonus
+  plugins like SplitText, MorphSVG."*
+
+**Therefore:** no licence gate, no Club membership to buy, and no free-alternative
+fallback path is needed.
+
+**Decision:** use `SplitText`. **Skip `ScrollSmoother`** — licence is irrelevant
+to the reason. ScrollSmoother replaces the browser's scroll container with a
+transform-driven one, which requires a fixed wrapper, breaks in-page anchor
+scrolling, interferes with keyboard focus scrolling, and adds per-frame work on
+top of `scrub`. Native scrolling plus the Skill's numeric `scrub` already gets the
+inertia the brief wanted. Adding it would trade §8's performance budget for a
+feel difference almost no visitor would notice.
+
+**Registration is centralised** in `frontend/lib/gsap-setup.ts`. No component may
+call `gsap.registerPlugin` for a shared plugin; `scroll-book-hero.tsx`'s existing
+call is replaced by importing the setup module, which registers on import. (The
+Part I rationale for registering *inside* `gsap.context` still holds for trigger
+*creation* — only registration moves.)
+
+## 17. Preloader
+
+First load of a session only. A branded wordmark/book-icon fade, **≤1.2s**, hidden
+entirely for the rest of the session.
+
+- Session marker in `sessionStorage` inside `try/catch` — a browser with storage
+  disabled must not throw and must not strand the preloader on screen.
+- **Hard cap 1.5s regardless of asset state.** The preloader fades out on
+  whichever comes first: fonts ready, or the cap. A preloader that waits for
+  assets on a slow connection is a worse failure than no preloader.
+- **Fail open.** Any error in the ready path resolves the same way the cap does.
+  JavaScript off, or a hydration failure, means the preloader was never painted
+  — it must never be the thing standing between a visitor and the page.
+- It is marketing chrome on `/` only. No product screen gets one.
+
+## 18. Navigation behaviour
+
+The masthead becomes **fixed** (it currently sits in normal flow) so it can
+overlay the hero and then transition:
+
+1. **Transparent over the hero**, becoming solid `--color-surface` with a subtle
+   shadow once scrolled past it. Driven by a `ScrollTrigger`, never a raw scroll
+   listener (Part I: hand-rolled listeners repaint the page every frame).
+2. **Hide on scroll-down, show on scroll-up**, desktop/tablet only
+   (`min-width: 768px`). Below that it stays fixed and solid, permanently — the
+   hide/show pattern is fiddly on touch and buys little on a phone.
+3. **Threshold: 120px**, and the direction test requires ≥8px of travel. Small
+   scroll jitter (trackpad noise, momentum residue, an over-sensitive
+   `wheel`) must not toggle the bar.
+
+A fixed bar over the pinned hero fights the pin, so the hero's copy column
+reserves the bar's height — same problem Part I solved the other way (the bar
+yielded to the hero) by putting the bar in flow. It cannot stay in flow now that
+it must overlay and fade.
+
+Nav contents are unchanged from Part II §11 and are **not** extended to include
+Pricing: there is no `/pricing` route, so a Pricing link 404s. The brief's
+"Features, Pricing, Sign in, one CTA" is honoured in shape, with Pricing
+dropped rather than pointed at a non-existent page.
+
+## 19. Headline reveal
+
+Hero `<h1>` animates in on load with `SplitText`, word-level, `yPercent` +
+`opacity`, `--ease-standard`.
+
+- **Total ≤600ms** including stagger. A repeat visitor re-running a slow hero is
+  the failure mode; per-word stagger is ~40ms across a 9-word headline.
+- Runs once on load, **not** scrubbed. It is not part of the book's timeline.
+- The split is reverted after it completes, so the `<h1>` returns to plain text in
+  the DOM (split wrappers otherwise break Ctrl-F, text selection, and translation).
+- **Reduced motion:** no split at all, headline visible from first paint.
+- **Accessibility:** the headline is real text and stays in the accessibility
+  tree throughout — the reveal animates `opacity`/`transform` on word wrappers
+  that are never `aria-hidden`, and because the default (pre-JS, pre-split) state
+  is fully visible, a screen reader never meets an invisible headline. `opacity: 0`
+  is never the *only* thing hiding content a visitor is entitled to read.
+
+## 20. Micro-interactions
+
+- **Magnetic buttons.** Desktop, fine-pointer only: the button eases toward the
+  cursor on hover via `gsap.quickTo`, max 6px offset. Gated on
+  `(hover: hover) and (pointer: fine)` so it is never simulated on touch, and
+  `(prefers-reduced-motion: reduce)` disables it. Transform only.
+- **Card/link hover lift.** `translateY(-2px)` + shadow, `--duration-fast`,
+  `--ease-standard`, on the existing tokens. Applied once as a shared class, not
+  re-declared per card type.
+- **No custom cursor.** Excluded deliberately: it degrades pointer precision and
+  conflicts with native text cursors.
+
+## 21. Paper grain
+
+A tileable SVG-noise overlay at **2–4% opacity on light-theme surfaces only**
+(`[data-theme="light"]`). Purely decorative → `aria-hidden="true"`, and
+`pointer-events: none` so it can never intercept a click.
+
+Light-only is deliberate: over the dark ink canvas a noise overlay reads as
+compression artefact, not paper. Shipped at 3%, awaiting the owner's visual
+sign-off (§23).
+
+## 22. Performance and accessibility budgets (non-negotiable)
+
+- Animate `transform` and `opacity` only. Never `width/height/top/left/margin`,
+  never animated `box-shadow` or `filter` (Part I, restated as a gate).
+- **No layout shift from images.** Every visual on the page is CSS/SVG, so no
+  `<img>` needs an aspect box; where `next/image` is used it must be
+  `sized`. Nothing above the fold waits on a full-resolution bitmap.
+- **Pinning must not trap focus.** The pinned hero contains no focusable element
+  whose tab order depends on the pin: the hero's only controls (CTA, nav links)
+  are reachable before, during and after the pin, and unpinning restores normal
+  flow without moving focus. Verified, not assumed.
+- Decorative animated elements (book, grain, foil) are `aria-hidden="true"`.
+- Reduced motion is a designed static variant **for the whole page**, not just
+  the hero: the "see it in action" loop shows its finished state instead of
+  looping, reveals are skipped, no pin exists, and nothing is left mid-animation.
+
+## 23. Acceptance criteria (Part III)
+
+37. `lib/gsap-setup.ts` is the only place `gsap.registerPlugin` is called.
+38. Preloader appears only on a session's first load of `/`, resolves within
+    1.2s, is hard-capped at 1.5s, and cannot block the page if storage or
+    JavaScript fails.
+39. Masthead is transparent over the hero and solid after it, via ScrollTrigger;
+    hide/show-on-scroll is desktop-only and does not fire on jitter.
+40. Headline reveal is word-level, ≤600ms, and the DOM contains plain text
+    afterwards (no residual split wrappers).
+41. Magnetic hover appears only on fine-pointer, non-reduced-motion devices.
+42. Grain overlay is ≤4%, light-theme only, `aria-hidden`, non-interactive.
+43. No animated property outside `transform`/`opacity`; no CLS on load.
+44. Under `prefers-reduced-motion`, the entire page — every section — is static
+    and fully readable, with nothing hidden or mid-animation.
+45. Part II AC 19–36 all hold.
+46. `npm run lint`, `npm run test` and `npm run build` pass.
+
+## 24. Verification status and what is still open
+
+**Verified in a browser** (dev server, `/`):
+
+- All seven sections render in order; full content present in the accessibility
+  tree.
+- No client-side errors. GSAP, ScrollTrigger and SplitText all initialise
+  cleanly — a registration or import failure would have left the page inert.
+- **The looping demo was found to be shifting the page**, and the fix is in: the
+  panel has a constant height and the text scrolls inside it. Measured before —
+  the FAQ block moved 579px between two observations and the scroll position
+  snapped 393 → 0, because changing the document height under the pinned hero
+  made ScrollTrigger re-measure the pin. Measured after — identical positions
+  across three consecutive observations while the loop ran.
+- The demo now only types while on screen (`IntersectionObserver`, 0.25
+  threshold). It previously looped regardless of visibility, burning frames
+  through the whole hero and making the rest of the page un-observable.
+- All six FAQ triggers are real `<button>` elements, collapsed by default, with
+  the correct accessible names.
+- The fixed masthead survives an `#faq` anchor jump and stays in place.
+
+**Verified by test, not by browser:**
+
+- **`prefers-reduced-motion`.** Doing this honestly meant testing the *decision*,
+  not the animation, because the decision is where the risk is. The decision was
+  previously spelled out six times across five components in two incompatible
+  idioms — four branches opted in with `(prefers-reduced-motion: no-preference)`,
+  two opted out with `(prefers-reduced-motion: reduce)`. On a browser that
+  reports neither, those forms disagree: the first disables motion, the second
+  enables it. That inconsistency is now one module, `lib/motion-preference.ts`,
+  with an explicit invariant — motion is only ever assumed on an *explicit*
+  no-preference, and an absent, unsupported, or throwing `matchMedia` means
+  *assume less movement*. `tests/motion-preference.test.ts` (8 cases) asserts
+  that invariant directly, including the SSR case where `window` does not exist.
+  The landing page's own reduced-motion branches still have not been *exercised
+  in a browser*, because this environment reports `no-preference`; what is now
+  proven is that each branch asks one tested question rather than its own copy of
+  it.
+
+  This also fixed a latent crash: the two pre-existing shells
+  (`components/auth/auth-shell.tsx`, `components/generate/generate-shell.tsx`)
+  called `window.matchMedia(...)` unguarded, which throws where the API is
+  absent. Both now go through the same helper.
+
+**NOT verified — do not read this slice as signed off on these:**
+
+- **The FAQ accordion's one-open-at-a-time rule.** Browser tooling timed out
+  twice before a click could dispatch. The state is a single `openIndex`, so
+  this is low-risk, but it is untested. This project has no component-test
+  renderer (`vitest` runs in the `node` environment and matches `*.test.ts`), and
+  adding jsdom + Testing Library to prove a three-line `useState` toggle would be
+  a larger change than the risk warrants — so it stays honestly open rather than
+  getting a ceremonial test.
+- **Measured 60fps scroll performance and CLS.** §8 of the brief demands
+  measurement, not code inspection. This environment cannot profile a mid-range
+  laptop. Needs a browser performance profile.
+- **Desktop layout.** The verification viewport was 310×545 — good for the
+  narrow case, useless for the two-column hero, the alternating feature rows, or
+  the masthead's hide/show, all of which are desktop-only behaviour.
+- **Light theme.** The grain overlay only renders under
+  `[data-theme="light"]` and was never seen.
+
+**Gates:** `tsc --noEmit` clean, `npm run lint` clean, `npm run test` 85/85
+(13 files — the 8 new ones are `tests/motion-preference.test.ts`), `npm run build`
+clean. `npm run format:check` was already failing on 19 files before this slice;
+the files touched here are now formatted, reducing it to 16 pre-existing
+offenders that belong to a separate change.
+
+**Pre-existing build flake, unrelated to this slice:** `npm run build`
+intermittently fails with `PageNotFoundError: Cannot find module for page:
+/_not-found` / "Failed to collect page data for /_not-found", while the same
+command succeeds minutes later on identical source. It reproduces on a clean
+stash of this work (`git stash` of all `frontend/` changes, `.next` removed), so
+it is not caused by anything here. `/_not-found` is a Next.js internal route that
+no file in this project references, and the failure follows `✓ Compiled
+successfully`, which is why it is worth flagging rather than silently re-running
+until green. Clearing `.next` makes it pass; that is a workaround, not a
+diagnosis.
+
+**Owner decisions outstanding:**
+
+- **Grain opacity sign-off** — shipped at 3%, one token (`--grain-opacity`).
+- Social-proof statistic, real screen capture for the demo, testimonials, and
+  pricing copy — unchanged from §15.
+

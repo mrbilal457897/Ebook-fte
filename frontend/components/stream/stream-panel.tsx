@@ -6,6 +6,12 @@ export type StreamStatus = "idle" | "working" | "done" | "stopped" | "error"
  * Stream panel: the watch-it-write document plus status line (T036). Shows
  * `isPartial` hint while working, "still working" if the first token stalls,
  * and terminal text on completion. Presentational.
+ *
+ * `announce` defaults to true and is turned OFF in exactly one place: the
+ * landing page's "see it in action" demo. That demo loops on a timer forever,
+ * and `aria-live="polite"` would announce every appended character to a screen
+ * reader on an endless cycle — the loudest possible misuse of a live region. The
+ * demo's text is still fully readable; it simply is not re-announced on change.
  */
 export default function StreamPanel({
   text,
@@ -13,12 +19,14 @@ export default function StreamPanel({
   stillWorking,
   errorMessage,
   savedHint,
+  announce = true,
 }: {
   text: string
   status: StreamStatus
   stillWorking: boolean
   errorMessage: string | null
   savedHint?: string | null
+  announce?: boolean
 }) {
   const hasText = text.length > 0
   const statusLabel =
@@ -33,7 +41,7 @@ export default function StreamPanel({
             : "Nothing yet"
 
   return (
-    <section className="stream-panel" aria-live="polite">
+    <section className="stream-panel" aria-live={announce ? "polite" : "off"}>
       <header className="stream-header">
         <span
           className={`status-dot ${status === "idle" ? "" : status === "working" ? "is-working" : status === "done" ? "is-done" : "is-stopped"}`}

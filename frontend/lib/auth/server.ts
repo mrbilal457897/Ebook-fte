@@ -6,6 +6,7 @@ import { getPool, requireDatabaseUrl } from "@/lib/db"
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? ""
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ""
 const SECRET = process.env.BETTER_AUTH_SECRET ?? ""
+const BASE_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000"
 
 /**
  * Fail with a precise message at request time (not at import time, so
@@ -22,6 +23,7 @@ export function assertAuthConfigured(): void {
 
 export const auth = betterAuth({
   secret: SECRET,
+  baseURL: BASE_URL,
   database: getPool(),
   emailAndPassword: { enabled: true },
   socialProviders: {

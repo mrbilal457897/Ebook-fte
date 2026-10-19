@@ -58,32 +58,64 @@ export async function POST(request: Request) {
     )
   }
 
-  const tenancy = await resolveTenancy()
-  const byok = await getActiveByokCredential()
+  // Tenancy resolution throws when the authenticated session has no `accounts`
+  // row yet. That is a state the UI can act on (bind the account, then retry),
+  // not a server fault — letting it escape produced an opaque HTTP 500 with a
+  // stack trace and no code the SSE client could show.
+  let tenancy: Awaited<ReturnType<typeof resolveTenancy>>
+  let byok: Awaited<ReturnType<typeof getActiveByokCredential>>
+  try {
+    tenancy = await resolveTenancy()
+    byok = await getActiveByokCredential()
+  } catch (err) {
+    const code = errorCode(err)
+    if (code === "signed_out") {
+      return NextResponse.json({ code }, { status: 401 })
+    }
+    // 409: the request is well-formed and the caller is authenticated, but the
+    // session is not yet bound to a tenant account.
+    // Only a recognised tenancy code gets to describe itself; anything else
+    // could carry a database host, socket or path that must not reach the
+    // browser. Those still surface in the server log via the thrown error.
+    const message =
+      code === "internal" ? "Could not resolve your account." : errorMessage(err)
+    return NextResponse.json({ code, message }, { status: 409 })
+  }
 
   const deviceId = cookieValue(request.headers.get("cookie"), "fte_device_id") ?? session.user.id
   const clientIp =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip")
 
-  const upstream = await fetch(`${orchestratorUrl}/v1/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Internal-Token": internalToken,
-    },
-    body: JSON.stringify({
-      prompt,
-      accountRef: { tenantId: tenancy.tenantId, accountId: tenancy.accountId },
-      modelCredentialId: byok.credentialId,
-      conversationId: randomUUID(),
-      rateLimitContext: {
-        deviceKey: hashScopeKey(`device:${deviceId}`),
-        clientIpKey: clientIp ? hashScopeKey(`ip:${clientIp}`) : null,
+  let upstream: Response
+  try {
+    upstream = await fetch(`${orchestratorUrl}/v1/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Token": internalToken,
       },
-    }),
-    cache: "no-store",
-  })
+      body: JSON.stringify({
+        prompt,
+        accountRef: { tenantId: tenancy.tenantId, accountId: tenancy.accountId },
+        modelCredentialId: byok.credentialId,
+        conversationId: randomUUID(),
+        rateLimitContext: {
+          deviceKey: hashScopeKey(`device:${deviceId}`),
+          clientIpKey: clientIp ? hashScopeKey(`ip:${clientIp}`) : null,
+        },
+      }),
+      cache: "no-store",
+    })
+  } catch {
+    // The Orchestrator being down or unreachable is an upstream fault, not a
+    // bad request from the customer. Unguarded, `fetch` threw here and surfaced
+    // as an opaque 500 that read like the customer's prompt was at fault.
+    return NextResponse.json(
+      { code: "upstream_unavailable", message: "The generation service is unreachable." },
+      { status: 502 },
+    )
+  }
 
   if (!upstream.ok) {
     const body = (await upstream.json().catch(() => ({ code: "upstream_error" }))) as Record<
@@ -94,6 +126,21 @@ export async function POST(request: Request) {
   }
 
   return new Response(upstream.body, { headers: SSE_RESPONSE_HEADERS })
+}
+
+/**
+ * lib/tenancy signals its refusals as `code: detail` on the thrown message, so
+ * the code the SSE client needs survives without widening that module's API.
+ * An unrecognised failure stays `internal` rather than leaking a raw message.
+ */
+function errorCode(err: unknown): string {
+  const message = errorMessage(err)
+  const match = /^(no_account|ambiguous_tenant|signed_out):/.exec(message)
+  return match ? match[1] : "internal"
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 /** Minimal Cookie-header parsing (testable without `next/headers` cookies()). */
