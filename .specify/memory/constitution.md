@@ -101,8 +101,14 @@ to change one of these must say so explicitly and get it re-confirmed.
 8. **Free tier.** Sign-in is mandatory before any AI usage. Free tier is
    capped at 3 generations per account, rate-limited by account, device,
    IP, and tenant.
-9. **Hosting.** Not yet decided (TBD). Do not build against a specific
-   hosting target until this is explicitly ratified as an amendment.
+9. **Hosting.** Split, partly ratified 2026-10-19. The **Next.js frontend
+   (`frontend/`) is hosted on Vercel**, configured with Root Directory =
+   `frontend` (a dashboard project setting) because this is a monorepo whose
+   repo root has no `package.json`. The **Python agents and MCP servers
+   remain TBD** — do not build against a specific hosting target for them
+   until that is explicitly ratified as an amendment; keep those deployment
+   concerns (Dockerfiles, IaC) isolated so the choice can still change
+   cheaply.
 
 ### Article III — The Covered Lifecycle
 

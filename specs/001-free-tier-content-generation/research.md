@@ -62,7 +62,10 @@ for the free-tier counter and in-flight lock.
   `X-Accel-Buffering: no`. Intermediaries that buffer (compression
   middleware, nginx `proxy_buffering`, some hosting runtimes) defeat
   token-by-token delivery and must be tested against the eventual hosting
-  target (still TBD, Article II.9).
+  target (still TBD, Article II.9). **Update 2026-10-19:** the Next.js frontend
+  now deploys to Vercel (Article II.9); the Python agent-hosting target this
+  note concerns — where SSE actually originates — is still open, so this risk
+  is unchanged.
 - **Alternatives considered:** browser `EventSource` (GET-only, no body —
   rejected); client talking directly to the Orchestrator (loses the single
   auth boundary — rejected).

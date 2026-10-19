@@ -33,7 +33,7 @@ irreversible or costly actions.
 | Frontend framework | **Next.js 15+ (App Router)** |
 | Billing/subscriptions | **Lago** (open-source, self-hosted billing/metering) for subscription + invoicing logic. Card capture still needs a licensed payment gateway underneath — do not treat Lago as a payment processor |
 | Testing/lint | Python: `pytest`, `pyright`, `ruff`. Frontend: `ESLint`, `Prettier`, `Vitest` |
-| Hosting/deployment | **TBD** — not yet decided. ADK natively deploys to Cloud Run, GKE, or its managed Agent Runtime; do not pick one and build against it until this is explicitly confirmed. Keep deployment concerns (Dockerfiles, IaC) isolated so the choice can still change cheaply |
+| Hosting/deployment | **Split, partly confirmed 2026-10-19.** The **Next.js frontend (`frontend/`) is hosted on Vercel.** This is a monorepo: the repo root holds `frontend/` plus the Python `agents/` and `mcp-servers/` uv projects, and the repo root has no `package.json`/`pyproject.toml`. Vercel must therefore be configured with **Root Directory = `frontend`** (a dashboard project setting — `vercel.json` cannot set it), with `frontend/vercel.json` pinning `framework: nextjs`. Deploying from the repo root without that setting makes Vercel pick the Python builder and fail with `PYTHON_ENTRYPOINT_NOT_FOUND`. **The Python agents/MCP servers are still TBD** — ADK natively deploys to Cloud Run, GKE, or its managed Agent Runtime; do not pick one and build against it until that is explicitly confirmed. Keep the Python deployment concerns (Dockerfiles, IaC) isolated so that choice can still change cheaply |
 
 ## 3. Principles
 

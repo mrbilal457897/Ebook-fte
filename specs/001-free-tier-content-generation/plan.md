@@ -50,6 +50,11 @@ against a hosting target. Design assumes a standard self-hosted Node (Next.js)
 and Python (agent services) runtime where SSE is not intermediately buffered;
 buffering awareness is a tracked Build risk (research.md).
 
+> **Note, 2026-10-19:** the frontend half of this is now resolved — the Next.js
+> app deploys to Vercel with Root Directory = `frontend` (Constitution Article
+> II.9, AGENTS.md §2). The Python agent-hosting target this note is really about
+> remains TBD, and the SSE-buffering risk above still applies to it.
+
 **Project Type**: Web application — Next.js frontend (Option 2) plus two
 Python `uv` service projects for the agent layer.
 
@@ -80,7 +85,7 @@ no queue, no publishing/ads/voice/cover/billing-UI work in this slice.
 | II.6 Frontend (Next.js 15 App Router) | Frontend is Next.js 15 App Router | PASS |
 | II.7 Billing (Lago; not a payment processor) | Only the upgrade-prompt trigger calls Lago; checkout flow is a separate slice | PASS |
 | II.8 Free tier (3 generations; rate limit by account/device/IP/tenant) | 3-gen cap enforced atomically; device/IP limits config-driven within tenant (Clarification Q4) | PASS |
-| II.9 Hosting (TBD) | No hosting target chosen; deployment concerns isolated; SSE/hosting buffering tracked as a risk | PASS |
+| II.9 Hosting (split; frontend ratified 2026-10-19) | Frontend → Vercel (Root Directory = `frontend`); Python agent-hosting target still TBD and not built against; SSE/hosting buffering tracked as a risk | PASS |
 | IV.3 No arbitrary code/SQL tools | Data-access is orchestration code; agent tools narrow and named only | PASS |
 | IV.5 Tenant isolation | `tenant_id` derived from Next.js session at the boundary; never accepted from model output | PASS |
 | VI.4 Small, checkable, committed steps | Task sequence (below) has per-task checks mapped to ACs; one commit per task | PASS |
