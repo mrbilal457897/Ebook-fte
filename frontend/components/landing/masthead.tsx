@@ -1,53 +1,39 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useRef } from "react"
 import Link from "next/link"
-import { gsap, ScrollTrigger } from "@/lib/gsap-setup"
-import { MOTION_ALLOWED_MQ } from "@/lib/motion-preference"
+import { ScrollTrigger } from "@/lib/gsap-setup"
+import { useMotion } from "@/lib/motion"
+import { navbarHideOnScroll } from "@/lib/motion/presets"
 import Logo from "@/components/brand/logo"
 
 /**
  * Fixed masthead for the landing page: transparent over the hero, solid once the
  * hero is behind the visitor, and hidden while scrolling down on desktop.
  *
- * WHY FIXED, AND WHAT THAT COSTS: the bar has to overlay the hero to be able to
- * fade in and out, and it has to be fixed to do that. A fixed bar over a pinned
- * hero fights the pin, so the hero reserves the bar's height in CSS instead.
- * (Part I solved the same collision the other way — bar in flow, hero wins —
- * which is why the bar used to sit in normal flow.)
+ * WHY FIXED: the bar has to overlay the hero to fade in and out, and it has to
+ * be fixed to do that. The hero reserves the bar's height in CSS instead of the
+ * bar sitting in normal flow (Part I's earlier arrangement).
  *
- * TWO SCROLLTRIGGERS, NOT A SCROLL LISTENER. A raw scroll handler repaints the
- * page on every frame of the whole scroll duration. ScrollTrigger's listener is
- * throttled to its own rAF and carries the scroll position we need anyway.
+ * TWO BEHAVIOURS, TWO MECHANISMS:
  *
- * The `refreshPriority` on the solid trigger is load-bearing: it makes that
- * trigger refresh AFTER the hero's pin (which has the default priority of 0), so
- * it measures the hero's final pinned height rather than its pre-pin height and
- * does not go solid 500% of the viewport too early.
+ * - The **is-solid** toggle is a `ScrollTrigger.create` that is deliberately
+ *   NOT motion-gated: it is a background-color and shadow change on a bar that
+ *   is otherwise unreadable against the hero artwork — killing it under
+ *   reduced motion would leave a transparent bar on an image, which is worse
+ *   for that visitor, not better. (Part IV: the `refreshPriority: 1` this
+ *   trigger used to carry against the hero's pin is gone with the pin — §25.)
+ * - The **hide/show on scroll** is the motion module's `navbarHideOnScroll`
+ *   preset (spec 005 Part IV): desktop-only, motion-gated, 120px threshold,
+ *   8px travel guard, cleanup included. The hand-rolled direction test that
+ *   used to live here is retired.
  *
- * Hide/show is desktop and tablet only. Below 768px the bar stays fixed and solid
- * permanently — the hide/show pattern is fiddly on touch, buys little on a
- * phone, and a bar that vanishes while a thumb is mid-scroll is just in the way.
+ * Nav contents are the four in-page anchors of spec 005 §11 (as amended by
+ * Part IV). `Pricing` points at the on-page pricing section — there is still
+ * no `/pricing` route, and one must not be invented.
  *
- * Nav contents are deliberately four items. No Pricing: there is no /pricing
- * route, and a dead link on a marketing page is worse than an absent section.
- *
- * SPEC: specs/005-visual-identity-scroll-hero/spec.md §18.
+ * SPEC: specs/005-visual-identity-scroll-hero/spec.md §11, §18.
  */
-
-/**
- * Scrolled past this before the bar is allowed to hide at all. Below it the bar
- * is always visible, so the first flick of a scroll never removes the nav.
- */
-const HIDE_AFTER = 120
-
-/**
- * Minimum travel in one direction before the direction test is allowed to flip.
- * Without this, trackpad noise and momentum residue flicker the bar on and off
- * while the visitor is trying to read.
- */
-const DIRECTION_DEADBAND = 8
-
 export default function Masthead({
   signedIn,
   primaryHref,
@@ -61,61 +47,29 @@ export default function Masthead({
 }) {
   const barRef = useRef<HTMLElement>(null)
 
-  useEffect(() => {
-    const bar = barRef.current
-    if (!bar) return
-
-    const ctx = gsap.context(() => {
+  useMotion(
+    barRef,
+    (_q, bar) => {
       // The hero section is this bar's "past the hero" landmark. The bar is a
       // sibling of it inside .landing, so query rather than pass it down.
       const hero = bar.parentElement?.querySelector<HTMLElement>(".landing-hero")
 
-      // --- transparent over the hero, solid once past it ------------------
-      // Deliberately NOT inside a matchMedia branch, including the
-      // reduced-motion branch. This is a background-color and shadow change on
-      // a bar that is otherwise unreadable against the hero artwork — killing it
-      // under reduced motion would leave a transparent bar on an image, which is
-      // worse for that visitor, not better.
       if (hero) {
         ScrollTrigger.create({
           trigger: hero,
           start: "bottom top",
-          refreshPriority: 1,
           onToggle: (self) => {
             bar.classList.toggle("is-solid", self.isActive)
           },
         })
       }
 
-      // --- hide on scroll-down, show on scroll-up ------------------------
-      // Desktop/tablet, and not for visitors who asked for less motion.
-      const mm = gsap.matchMedia()
-
-      mm.add(`${MOTION_ALLOWED_MQ} and (min-width: 768px)`, () => {
-        let lastY = window.scrollY
-
-        ScrollTrigger.create({
-          start: 0,
-          end: "max",
-          onUpdate: (self) => {
-            const y = self.scroll()
-            const delta = y - lastY
-            lastY = y
-
-            if (y < HIDE_AFTER) {
-              bar.classList.remove("is-hidden")
-              return
-            }
-            if (Math.abs(delta) < DIRECTION_DEADBAND) return
-
-            bar.classList.toggle("is-hidden", delta > 0)
-          },
-        })
-      })
-    }, bar.parentElement ?? undefined)
-
-    return () => ctx.revert()
-  }, [])
+      // Hide on scroll-down, show on scroll-up. Gated inside the preset:
+      // desktop/tablet only, and never for visitors who asked for less motion.
+      return navbarHideOnScroll(bar)
+    },
+    [],
+  )
 
   return (
     <header className="landing-masthead" ref={barRef}>
@@ -140,6 +94,9 @@ export default function Masthead({
           </a>
           <a className="landing-nav-link" href="#how-it-works">
             How it works
+          </a>
+          <a className="landing-nav-link" href="#pricing">
+            Pricing
           </a>
           <a className="landing-nav-link" href="#faq">
             FAQ

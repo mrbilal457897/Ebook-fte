@@ -28,7 +28,8 @@ import Logo from "@/components/brand/logo"
  * simply needs a rebuild next January — cheaper than making the whole page
  * dynamic over one string.
  *
- * SPEC: specs/005-visual-identity-scroll-hero/spec.md §25.
+ * SPEC: specs/005-visual-identity-scroll-hero/spec.md §7, §10 (footer is not a
+ * section; it inherits the anchor list and the tenant-threading rules).
  */
 export default function SiteFooter({
   signedIn,
@@ -58,13 +59,16 @@ export default function SiteFooter({
         <nav className="landing-footer-col" aria-label="Footer">
           <h2 className="landing-footer-heading">Product</h2>
           <a className="landing-footer-link" href="#features">
-            What it does
+            Features
           </a>
           <a className="landing-footer-link" href="#how-it-works">
             How it works
           </a>
+          <a className="landing-footer-link" href="#pricing">
+            Pricing
+          </a>
           <a className="landing-footer-link" href="#faq">
-            Questions
+            FAQ
           </a>
         </nav>
 

@@ -65,6 +65,24 @@ function toTriggerTarget(target: Target): Element | string {
   return target as Element | string
 }
 
+/**
+ * The one scroll-reveal contract shared by every entrance preset:
+ * `true` reveals on enter (own trigger, `"top 88%"`, once); an object
+ * overrides trigger/start/once; `undefined` means no scroll trigger at all.
+ */
+type ScrollOption = boolean | { trigger?: Target; start?: string; once?: boolean }
+
+function resolveScrollTrigger(scroll: ScrollOption | undefined, target: Target) {
+  if (scroll === undefined) return undefined
+  return {
+    trigger: toTriggerTarget(
+      typeof scroll === "object" && scroll.trigger ? scroll.trigger : target,
+    ),
+    start: (typeof scroll === "object" && scroll.start) || "top 88%",
+    once: typeof scroll === "object" && scroll.once !== undefined ? scroll.once : true,
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Entrances                                                           */
 /* ------------------------------------------------------------------ */
@@ -94,16 +112,7 @@ export function fadeUp(target: Target, options: FadeUpOptions = {}): MotionClean
   } = options
 
   return gated("", () => {
-    const scrollTrigger =
-      scroll === undefined
-        ? undefined
-        : {
-            trigger: toTriggerTarget(
-              typeof scroll === "object" && scroll.trigger ? scroll.trigger : target,
-            ),
-            start: (typeof scroll === "object" && scroll.start) || "top 88%",
-            once: typeof scroll === "object" && scroll.once !== undefined ? scroll.once : true,
-          }
+    const scrollTrigger = resolveScrollTrigger(scroll, target)
 
     gsap.fromTo(
       target,
@@ -133,16 +142,7 @@ export function staggerReveal(target: Target, options: StaggerRevealOptions = {}
   } = options
 
   return gated("", () => {
-    const scrollTrigger =
-      scroll === undefined
-        ? undefined
-        : {
-            trigger: toTriggerTarget(
-              typeof scroll === "object" && scroll.trigger ? scroll.trigger : target,
-            ),
-            start: (typeof scroll === "object" && scroll.start) || "top 88%",
-            once: typeof scroll === "object" && scroll.once !== undefined ? scroll.once : true,
-          }
+    const scrollTrigger = resolveScrollTrigger(scroll, target)
 
     gsap.fromTo(
       target,
@@ -232,6 +232,8 @@ export type CountUpOptions = {
   suffix?: string
   decimals?: number
   locale?: string
+  /** Same scroll contract as `fadeUp`: start counting when scrolled into view. */
+  scroll?: boolean | { trigger?: Target; start?: string; once?: boolean }
 }
 
 /**
@@ -239,7 +241,9 @@ export type CountUpOptions = {
  * Put the FINAL value in the markup as well: with JS off the element shows
  * it, and the reduced-motion static variant is exactly that final value —
  * the cleanup renders `to` so a mid-count revert settles on the right
- * number instead of stopping at "4,812".
+ * number instead of stopping at "4,812". With `scroll`, the count arms when
+ * the trigger fires; until then the element shows `from`, which is why the
+ * markup's own final value matters even more (SSR and no-JS both keep it).
  */
 export function countUp(el: Element | null | undefined, options: CountUpOptions): MotionCleanup {
   if (!isBrowser() || !el) return NOOP
@@ -252,6 +256,7 @@ export function countUp(el: Element | null | undefined, options: CountUpOptions)
     suffix = "",
     decimals = 0,
     locale,
+    scroll,
   } = options
 
   const formatter = new Intl.NumberFormat(locale, {
@@ -265,11 +270,13 @@ export function countUp(el: Element | null | undefined, options: CountUpOptions)
   return gated("", () => {
     render(from)
     const proxy = { value: from }
+    const scrollTrigger = resolveScrollTrigger(scroll, el)
     gsap.to(proxy, {
       value: to,
       duration,
       ease,
       onUpdate: () => render(proxy.value),
+      ...(scrollTrigger ? { scrollTrigger } : {}),
     })
     return () => render(to)
   })

@@ -149,6 +149,10 @@ only updates that attribute. `prefers-color-scheme` is **not** consulted — see
 
 ### 3.7 The hero
 
+> **Superseded 2026-10-08 by Part IV (§25).** The pinned scroll-book described
+> below is retired; the hero's visual is now a tilt/float book with no pin and
+> no scrub. This section is kept as the record of what Part I built.
+
 `components/landing/scroll-book-hero.tsx`. Only `landing.tsx` imports it. One
 GSAP timeline, `pin: true`, `scrub: 0.8`, `end: "+=500%"`.
 
@@ -235,6 +239,13 @@ scale and motion sections stay as they are.
    Specifically: a gold primary button has ink text, never cream.
 
 **Hero — behaviour**
+
+> **Superseded 2026-10-08 by Part IV (§25, §29).** AC 9–15 described the pinned
+> scroll-book hero, which Part IV retires; they are kept as the record of what
+> Part I shipped. The live criteria for the hero are in Part IV §29. Tokens,
+> theme, scope-containment and gate ACs above and below this block still hold
+> (AC 16 now reads "no ScrollTrigger on product screens"; the landing page
+> itself keeps only non-pinned, non-scrubbed triggers).
 
 9. The hero animation is driven by scroll position, not a timer or a hand-rolled
    scroll listener. Verified by scrubbing to a position, stopping, and confirming
@@ -369,6 +380,10 @@ imagery, no mega-navigation with dozens of product links — this is one product
 
 ## 9. The "see it in action" section is a reconstruction, not a recording
 
+*(Part IV: the standalone section is merged into the how-it-works tour as step
+3's sticky preview — §7 row 4, §27. Everything below still applies to that
+preview; it is the same component and the same scripted loop.)*
+
 No real screen capture of the product exists yet. Rather than fabricate a
 product screenshot or ship a broken `<video>`, this section drives the **real
 `components/stream/stream-panel.tsx`** with real token styling and loops a
@@ -497,10 +512,15 @@ layout effect and must not reorder content for screen readers or keyboard users.
 
 These are recorded so they are not mistaken for done:
 
-- The social-proof statistic needs a real number.
-- The "see it in action" section should become a real capture.
+- Any *usage* figure for the social-proof strip still needs a real number.
+  (Part IV changed the strip to ship real **product facts** instead — the open
+  item is usage stats, not the strip itself.)
+- The "see it in action" section should become a real capture. (Part IV merged
+  the reconstruction into the how-it-works tour as step 3's preview; the
+  reconstruction-not-recording rule in §9 still applies to it.)
 - Testimonials need real, attributed quotes.
-- Pricing copy needs the Lago plan decisions.
+- Paid pricing copy needs the Lago plan decisions; the pricing section ships
+  the free tier only, with paid prices marked as announced-before-launch (§26).
 - Nothing here has been viewed in a browser; both themes are verified by static
   analysis only (see the note in commit `cbf047c`).
 
@@ -578,15 +598,17 @@ overlay the hero and then transition:
    scroll jitter (trackpad noise, momentum residue, an over-sensitive
    `wheel`) must not toggle the bar.
 
-A fixed bar over the pinned hero fights the pin, so the hero's copy column
-reserves the bar's height — same problem Part I solved the other way (the bar
-yielded to the hero) by putting the bar in flow. It cannot stay in flow now that
-it must overlay and fade.
+A fixed bar over the hero needs the hero to reserve its height, which the hero's
+padding-top does. *(Part IV note: the pinned hero this paragraph was written
+against is retired — §25 — so there is no longer a pin to fight, but the
+reservation stays: the bar still overlays and fades, and a transparent bar over
+hero artwork still needs the reservation.)* It cannot sit in normal flow now
+that it must overlay and fade.
 
-Nav contents are unchanged from Part II §11 and are **not** extended to include
-Pricing: there is no `/pricing` route, so a Pricing link 404s. The brief's
-"Features, Pricing, Sign in, one CTA" is honoured in shape, with Pricing
-dropped rather than pointed at a non-existent page.
+Nav contents are the four in-page anchors of §11 as amended by Part IV —
+`Features`, `How it works`, `Pricing`, `FAQ` — plus sign-in and the primary CTA.
+`Pricing` is an on-page anchor to the pricing section, not a route link; there
+is still no `/pricing` route and one must not be invented.
 
 ## 19. Headline reveal
 
@@ -595,7 +617,11 @@ Hero `<h1>` animates in on load with `SplitText`, word-level, `yPercent` +
 
 - **Total ≤600ms** including stagger. A repeat visitor re-running a slow hero is
   the failure mode; per-word stagger is ~40ms across a 9-word headline.
-- Runs once on load, **not** scrubbed. It is not part of the book's timeline.
+- Runs once on load, **not** scrubbed. *(Part IV: it is the leading beat of the
+  hero's single load timeline — eyebrow, headline, sub/CTA/trust row, book
+  entrance — which finishes within ~1.4s of load. There is no longer a separate
+  scroll-driven book timeline for it to stay independent of; nothing in the
+  hero is scrubbed.)*
 - The split is reverted after it completes, so the `<h1>` returns to plain text in
   the DOM (split wrappers otherwise break Ctrl-F, text selection, and translation).
 - **Reduced motion:** no split at all, headline visible from first paint.
@@ -634,14 +660,16 @@ sign-off (§23).
 - **No layout shift from images.** Every visual on the page is CSS/SVG, so no
   `<img>` needs an aspect box; where `next/image` is used it must be
   `sized`. Nothing above the fold waits on a full-resolution bitmap.
-- **Pinning must not trap focus.** The pinned hero contains no focusable element
-  whose tab order depends on the pin: the hero's only controls (CTA, nav links)
-  are reachable before, during and after the pin, and unpinning restores normal
-  flow without moving focus. Verified, not assumed.
+- **No GSAP pin remains to trap focus.** *(Part IV: the pinned hero is retired —
+  §25 — and nothing replaced it with another pin. The how-it-works tour's
+  sticky preview is CSS `position: sticky`; it contains no focusable element,
+  every step's text is ordinary document content in DOM order, and the preview
+  swap is visual only.)*
 - Decorative animated elements (book, grain, foil) are `aria-hidden="true"`.
 - Reduced motion is a designed static variant **for the whole page**, not just
-  the hero: the "see it in action" loop shows its finished state instead of
-  looping, reveals are skipped, no pin exists, and nothing is left mid-animation.
+  the hero: the writing demo in the how-it-works tour shows its finished state
+  instead of looping, reveals are skipped, no pin exists, nothing is left
+  mid-animation, and the tour's preview swaps instantly rather than fading.
 
 ## 23. Acceptance criteria (Part III)
 
@@ -745,4 +773,206 @@ diagnosis.
 - **Grain opacity sign-off** — shipped at 3%, one token (`--grain-opacity`).
 - Social-proof statistic, real screen capture for the demo, testimonials, and
   pricing copy — unchanged from §15.
+
+---
+
+# Part IV — Homepage restructure: sections, hero, CTA
+
+**Added:** 2026-10-08. **Governs:** `frontend/components/landing/*`, the
+landing CSS in `globals.css`, `frontend/lib/motion/*` (the Step 3 module this
+part consumes), and the landing page's use of
+`.claude/skills/ebook-fte-design-system/SKILL.md`.
+
+The owner's Step-4 brief (2026-10-08) replaces the Part II/III page with a full
+SaaS homepage. Two decisions were confirmed before any code was written:
+**"SaaS homepage, adapted sections"** — the reference section list's order and
+mechanics are kept, its content is rewritten in this product's voice; and
+**"rework in place"** — components that map to the new list are rebuilt where
+they stand, the rest are replaced, and nothing is deleted from disk while the
+tree is uncommitted. §7, §11, §13, §14, §15, §18, §19 and §22 were amended in
+place above; this part records what changed and why, and adds the new criteria.
+
+## 25. The hero book (amends §3.7–3.8, AC 9–15)
+
+The pinned, scrubbed four-beat scroll-book is retired. In its place:
+
+- **A closed, foil-stamped book** (new component `hero-book.tsx`, new
+  `hero-book-*` CSS) rendered in the same two-column hero layout.
+- **Idle float** in pure CSS keyframes (`translateY` + a baked-in base rotate,
+  ~6s loop) and **pointer tilt** via `gsap.quickTo` (`rotateX`/`rotateY`,
+  clamped), gated on `(hover: hover) and (pointer: fine)` and
+  `MOTION_ALLOWED_MQ`. Reduced motion: no float, no tilt — a static book,
+  correct from first paint because the float is a CSS animation the global
+  reduced-motion reset zeroes.
+- **One hero load timeline** (inside `gsap.matchMedia(MOTION_ALLOWED_MQ)`):
+  eyebrow → masked SplitText headline (§19 rules unchanged: ≤600ms word reveal,
+  reverted on complete) → subhead/CTA/trust row → book entrance (opacity +
+  rise). Everything is visible by default in the DOM; the timeline only ever
+  hides what it will show within ~1.4s.
+- **Secondary CTA** is an in-page anchor ("Watch it write" →
+  `#how-it-works`), never a route (§14 AC 21).
+- **Trust row**: real product facts only — "No card required", "3 free books",
+  "EPUB, MOBI & PDF", "You press Publish, always". The note line keeps only the
+  sign-in link, so nothing repeats.
+
+Why: five viewport-heights of pinned scroll was the page's largest cost and its
+largest risk (pin measurement, mobile browser-chrome thrash, direction
+complaints). The tour section (§27) now carries the scroll-linked storytelling;
+the hero's job is the first screen, and it does it without a takeover.
+
+`scroll-book-hero.tsx` and its CSS are left on disk, unimported (the tree is
+uncommitted; nothing is deleted until a clean rollback point exists). AC 9–15
+are superseded by §29.
+
+## 26. Honest-content additions (bento, fit, founder, pricing)
+
+- **Capabilities bento** replaces the five feature rows (§13 superseded). Six
+  cards — writing, covers, formats, publishing package, marketing, audiobook
+  narration — each one headline + ≤3 sentences, reusing the existing CSS row
+  visual art where it fits and one new CSS visual for narration. Staggered
+  entrance via the Step 3 module's `staggerReveal` (cards do **not** carry
+  `data-reveal`, so the page-wide reveal never double-animates them). Cards
+  never reorder content for screen readers (§13's surviving rule).
+- **Who it's for** is two honest columns (fit / not-fit) derived from real
+  product boundaries — including the ones that sound like disqualifiers
+  (publishing is prepare-and-validate; the final click is the author's; no
+  guaranteed outcomes). No invented personas.
+- **Founder note** is first-person plural ("Why we built it"), signed "The
+  E-book FTE team", with an owner-action comment: it becomes a named founder
+  quote with portrait only when a real person exists. **No invented person** —
+  the §8.2 honesty rule, applied to identity instead of numbers.
+- **Pricing card** ships the free tier's real facts only ($0, 3 books, formats,
+  publishing checklists, no card) and states that paid pricing is announced
+  before launch. **No invented dollar amounts** — §8.2 extends to prices.
+  Owner-action comment points at the Lago plan decisions (§15).
+
+## 27. The how-it-works tour (merges §9 + the old how-it-works section)
+
+Section id stays `#how-it-works` (nav and footer anchors unchanged). Structure:
+TOC-style ordered steps (the real flow: sign up → say what you want → watch it
+write → review cover & format → publish when ready) on the left; a **CSS-sticky
+preview panel** on the right that swaps to the active step's mockup.
+
+- **Scroll-linking is activation, not animation.** One `IntersectionObserver`
+  with a centred band tracks which step crosses the viewport middle and sets
+  the active index. No scroll listener, no ScrollTrigger pin, no scrub (AC 32).
+  Previews are decorative (`aria-hidden`); every step's text is real content,
+  always visible, in DOM order.
+- **Step 3's preview is the real `StreamPanel`** with the scripted loop §9
+  governs, visibility-gated so it only types while its preview is the active
+  one.
+- **Reduced motion:** the swap is instant (the global reset zeroes the preview
+  crossfade transition), the demo shows its finished state (existing
+  behaviour), and no step text is ever hidden.
+
+## 28. Mobile sticky CTA bar
+
+Below 768px only (CSS media query). A fixed bottom bar with the primary CTA
+and a "3 free books · no card" note. It appears once the hero is no longer
+intersecting and hides while the final CTA is on screen (two
+`IntersectionObserver`s; default-visible in CSS so a no-JS phone still gets it,
+with the page reserving bottom padding so it never covers content). It threads
+`?tenant=` like every other auth-bound link (§10, AC 30–31, 52).
+
+## 29. Acceptance criteria (Part IV)
+
+47. §7's ten sections render in order; the mobile CTA bar is present below
+    768px and absent above it.
+48. No GSAP pin, no scrub, and no scroll takeover exists anywhere on `/`; the
+    only scroll-linked behaviour is trigger-based reveals, the tour's
+    activation observer, and the masthead's ScrollTrigger class toggles.
+49. The hero load timeline completes within ~1.5s of load; with JS off or
+    motion reduced, every hero element (eyebrow, headline, sub, both CTAs,
+    trust row, book) is visible in the served HTML.
+50. The social-proof figures are the three real product facts, count up only
+    when motion is allowed and only when scrolled into view, and render their
+    final values in the served HTML.
+51. No invented person, price, usage statistic, testimonial, or
+    platform-submission claim appears anywhere in the new sections (§8, §26).
+52. Following `/?tenant=acme` through the mobile CTA bar and the pricing card's
+    CTA lands on `/signup?tenant=acme` (or `/generate` when signed in).
+53. Under `prefers-reduced-motion: reduce`: no float, no tilt, no split, no
+    reveals, no demo loop, and the tour's preview swap is instant with all step
+    text visible.
+54. Both themes render every new section legibly; every new class resolves
+    through tokens; no raw hex outside `globals.css`.
+55. `tsc --noEmit`, `npm run lint`, `npm run test`, `npm run format:check` (for
+    touched files) and a production build pass.
+
+## 30. Verification (Part IV)
+
+Built 2026-10-19. Reviewed at 360 / 768 / 1024 / 1440 / 1920 px, both themes,
+against a production build served on port 3100.
+
+**Gates (all pass):**
+
+- `npx tsc --noEmit` — clean.
+- `npm run lint` (ESLint) — clean.
+- `npm run test` (Vitest) — 102 passed / 102, 14 files.
+- `prettier --check` on every touched file — clean.
+- `npm run build` — succeeds; `/` is a dynamic route (~39.5 kB, 183 kB first
+  load).
+
+**Browser review method.** `playwright-core@1.64.1` (exact-pinned devDependency)
+driving system Edge (`channel: "msedge"`) — the built-in browser flow had been
+declined earlier in the session, so this is the recorded substitute. Full-page
+screenshots at all ten theme×breakpoint combinations, plus a geometry probe and
+a behaviour probe. **No console errors and no page errors at any breakpoint, in
+either theme.**
+
+**What the review confirmed (mapped to ACs 47–55):**
+
+- **AC 47** — ten sections render in §7 order (proof → capabilities → tour →
+  fit → founder → pricing → FAQ → closing CTA → footer; hero is first). The
+  mobile CTA is `display: flex` at 360 px and `display: none` at 768 px and up.
+- **AC 48** — no GSAP pin, scrub, or scroll takeover on `/`. The only
+  scroll-linked behaviour is trigger-based reveals, the tour's activation
+  `IntersectionObserver`, the two mobile-CTA `IntersectionObserver`s, and the
+  masthead's `is-solid` `ScrollTrigger` class toggle.
+- **AC 49** — hero load timeline completes well inside 1.5 s; with reduced
+  motion (played through the browser with `reducedMotion: "reduce"`) every hero
+  element — eyebrow, headline, sub, both CTAs, four-item trust row, book — is
+  visible, the book at `opacity: 1` in its settled static pose.
+- **AC 50** — the three social-proof figures are the real product facts (3 / 4 /
+  3) and are present as final values in the served HTML; the count-up only runs
+  motion-allowed and only on scroll into view.
+- **AC 51** — no invented person (founder note signed "The E-book FTE team"),
+  price (Free tier `$0` only; paid pricing stated as "announced before launch"),
+  usage statistic, or platform-submission claim. Publishing copy everywhere says
+  prepare-and-validate with the final click belonging to the author.
+- **AC 52** — the pricing card's CTA and the mobile CTA both resolve to
+  `/signup?tenant=example-press` on the tenant-scoped page (FR-010 intact).
+- **AC 53** — under reduced motion: no float (the book's CSS float stops on its
+  designed resting frame), no tilt (fine-pointer gate), no split, no reveals,
+  the tour preview swap is instant, and tour step 3 renders the finished passage
+  rather than typing it. All step text is in the DOM.
+- **AC 54** — both themes legible at every breakpoint; every new class resolves
+  through tokens; no raw hex outside `globals.css`. The only element wider than
+  the viewport is the decorative `aurora-layer`/`aurora-field` (intentionally
+  oversized, `pointer-events: none`) — no content overflow, no horizontal
+  scroll at any size.
+- **AC 55** — gates above.
+
+**What was found and fixed during the build:**
+
+- A missing `scroll-margin-top` on the four in-page anchor targets: without it,
+  a nav jump landed with the section title tucked behind the fixed masthead.
+  Added for `#features`, `#how-it-works`, `#pricing`, `#faq`.
+- The retired feature-row and "see it in action" blocks left orphan CSS
+  (`.landing-row*`, `.landing-action-*`, `.landing-step*`). Removed, keeping the
+  shared `.landing-visual-*` primitives the bento reuses.
+- `landing-visual-wave-bar` was added as the one new CSS art primitive
+  (audiobook card), matching the existing token-only, no-borrowed-imagery rule.
+
+**Confirmed healthy (measured, not assumed):** bento cards share a uniform
+height within each grid row (e.g. 1440 px: 352/352, then 404/404/404, then the
+230 px full-width strip) — grid stretch, no per-card height hacks needed. The
+bento collapses 3 → 2 → 1 columns and the tour/fit grids 2 → 1 at their
+breakpoints, all in DOM order with no content reordering.
+
+**Superseded this session (files remain on disk, unimported):**
+`feature-rows.tsx`, `how-it-works.tsx` (steps), `see-it-in-action.tsx`,
+`scroll-book-hero.tsx`. Their `globals.css` blocks were removed; their component
+files are kept as the rollback point for Step 4.
+
 
