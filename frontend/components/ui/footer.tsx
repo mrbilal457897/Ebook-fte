@@ -14,7 +14,7 @@ export type FooterProps = {
   homeHref?: string
 }
 
-export function Footer({ tagline, columns = [], base, homeHref = "/" }: FooterProps) {
+export function Footer({ tagline, columns = [], base, homeHref = "/?tenant=example-press" }: FooterProps) {
   return (
     <footer className="ui-footer">
       <div className="ui-container">

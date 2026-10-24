@@ -151,7 +151,7 @@ export default function SettingsPage() {
       <div ref={rootRef} className="app-panel">
         <header className="app-head">
           <h1 className="app-title">Settings</h1>
-          <a className="btn-secondary" href="/generate">
+          <a className="btn-secondary" href="/generate" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
             Back to writing
           </a>
         </header>

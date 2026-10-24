@@ -298,7 +298,7 @@
   background: var(--color-surface-raised);
 }
 
-/* ---- Badge: colour by meaning, gold never encodes status ---- */
+/* ---- Badge: status remains text-readable on flat sticker fills ---- */
 
 .ui-badge {
   display: inline-flex;
@@ -336,7 +336,7 @@
   background: #ffe0da;
 }
 
-/* Decorative/brand only â€” never a status (gold/amber are indistinguishable). */
+/* Decorative/brand only — never a status. */
 .ui-badge-accent {
   color: var(--ink);
   background: var(--coral);
@@ -712,10 +712,6 @@
   animation: ui-modal-in var(--duration-base) var(--ease-standard);
 }
 
-.ui-modal-title {
-  font-weight: 800;
-}
-
 .ui-modal-actions .btn-primary,
 .ui-modal-actions .btn-secondary,
 .ui-modal-actions .btn-ghost,
@@ -726,6 +722,7 @@
 .ui-modal-title {
   font-family: var(--font-display);
   font-size: var(--text-lg);
+  font-weight: 800;
   line-height: var(--leading-tight);
   color: var(--color-text);
 }
