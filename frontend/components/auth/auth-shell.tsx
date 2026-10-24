@@ -5,7 +5,7 @@ import gsap from "gsap"
 import { prefersReducedMotion } from "@/lib/motion-preference"
 
 /**
- * Design-system auth shell: centered card on the dark canvas with a GSAP
+ * Design-system auth shell: centered sticker card on the paper canvas with a GSAP
  * entrance (fade + 12px rise, staggered children, `prefers-reduced-motion`
  * respected). One primary action per screen.
  */

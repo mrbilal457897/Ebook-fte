@@ -24,9 +24,18 @@ import {
 } from "@/components/ui"
 
 const NAV_LINKS = [
-  { label: "Home", href: "/" },
+  { label: "Home", href: "/?tenant=example-press" },
   { label: "Settings", href: "/settings" },
-  { label: "Sign in", href: "/signin" },
+  { label: "Sign in", href: "/signin?tenant=example-press" },
+]
+
+const POSTER_SWATCHES = [
+  { name: "Paper", value: "#FFF6E6" },
+  { name: "Ink", value: "#111111" },
+  { name: "Blue", value: "#2B2BFF" },
+  { name: "Coral", value: "#FF5A36" },
+  { name: "Yellow", value: "#FFD23F" },
+  { name: "Mint", value: "#3DDC97" },
 ]
 
 const ACCORDION_ITEMS = [
@@ -52,38 +61,14 @@ const ACCORDION_ITEMS = [
 
 const PRICING_PLANS = [
   {
-    name: "Starter",
-    description: "For a first book, once you know you want to write it.",
+    name: "Free",
+    description: "Everything you need to prepare your first book.",
     price: "$0",
-    period: "/ forever",
-    features: ["3 generations", "Draft watermark", "Community support"],
-    cta: "Your current plan",
-    current: true,
-    badge: "Current plan",
-  },
-  {
-    name: "Author",
-    description: "The full pipeline: write, cover, format, publish-ready files.",
-    price: "$29",
-    period: "/ month",
-    features: [
-      "Unlimited generations",
-      "Cover and formatting pipeline",
-      "EPUB / MOBI / PDF export",
-      "Publishing preflight checklist",
-    ],
-    cta: "Upgrade to Author",
+    period: "to start",
+    features: ["3 books start to finish", "Cover concepts and revisions", "EPUB / MOBI / print PDF"],
+    cta: "Start writing free",
     highlighted: true,
-    badge: "Most popular",
-  },
-  {
-    name: "Studio",
-    description: "For small presses running several titles at once.",
-    price: "$79",
-    period: "/ month",
-    features: ["Everything in Author", "5 team seats", "Priority support"],
-    cta: "Talk to us",
-    href: "/contact",
+    badge: "Free tier",
   },
 ]
 
@@ -154,14 +139,24 @@ export function DesignSystemPreview() {
           <header className="ds-head">
             <h1 className="ds-title">Design system</h1>
             <p className="ds-lede">
-              Every reusable component and every state, on the real tokens. Tab through this page —
-              each interactive element shows its focus ring — and resize from 360px up to a wide
-              desktop to check the responsive behaviour.
+              Sticker-poster system: Bricolage Grotesque display/body, DM Mono labels, thick ink
+              outlines, solid fills, and hard offset shadows. Tab through the page to inspect focus
+              states; resize from 360px to desktop to check responsive behaviour.
             </p>
             <p className="ds-note">
               Internal preview route. Not linked from anywhere in the product.
             </p>
           </header>
+
+          <section className="ds-palette" aria-label="Sticker poster colour palette">
+            {POSTER_SWATCHES.map((swatch) => (
+              <div key={swatch.name} className="ds-swatch">
+                <span className="ds-swatch-chip" style={{ background: swatch.value }} />
+                <span className="ds-label">{swatch.name}</span>
+                <code>{swatch.value}</code>
+              </div>
+            ))}
+          </section>
 
           <Section
             title="Buttons"
@@ -242,8 +237,6 @@ export function DesignSystemPreview() {
                 >
                   <option value="">Choose a plan…</option>
                   <option value="starter">Starter — free</option>
-                  <option value="author">Author — $29</option>
-                  <option value="studio">Studio — $79</option>
                 </Select>
                 <Textarea
                   label="Feedback"
@@ -275,11 +268,11 @@ export function DesignSystemPreview() {
             </div>
           </Section>
 
-          <Section title="Cards" lede="One surface, one radius, one selected-state treatment.">
+          <Section title="Cards" lede="Solid paper surfaces, thick ink outlines, and hard offset shadows.">
             <div className="ds-grid">
               <Card>
                 <span className="ds-label">Default</span>
-                <p className="ds-note">Surface fill, hairline border, 12px radius, 16px padding.</p>
+                <p className="ds-note">White fill, 2.5px ink border, 26px radius, 7px offset shadow.</p>
                 <Button size="sm" variant="secondary">
                   Select
                 </Button>
@@ -291,12 +284,12 @@ export function DesignSystemPreview() {
               </Card>
               <Card raised>
                 <span className="ds-label">Raised</span>
-                <p className="ds-note">A lighter surface for secondary elevation.</p>
+                <p className="ds-note">Solid white surface with the shared offset elevation.</p>
               </Card>
             </div>
           </Section>
 
-          <Section title="Badges" lede="Colour always encodes meaning — gold is never a status.">
+          <Section title="Badges" lede="Mono labels on white pills; colour remains legible with ink text.">
             <div className="ds-group">
               <div className="ds-block">
                 <span className="ds-label">Status</span>
@@ -392,7 +385,7 @@ export function DesignSystemPreview() {
 
           <Section
             title="Skeletons and avatars"
-            lede="Loading placeholders shimmer — or sit still under reduced motion."
+            lede="Flat loading placeholders pulse gently, and sit still under reduced motion."
           >
             <div className="ds-group">
               <div className="ds-skeleton-row">
@@ -445,24 +438,25 @@ export function DesignSystemPreview() {
           {
             heading: "Product",
             links: [
-              { label: "Home", href: "/" },
+              { label: "Home", href: "/?tenant=example-press" },
               { label: "Settings", href: "/settings" },
-              { label: "Sign in", href: "/signin" },
+              { label: "Sign in", href: "/signin?tenant=example-press" },
             ],
           },
           {
             heading: "Company",
             links: [
-              { label: "About", href: "#" },
-              { label: "Contact", href: "#" },
-              { label: "Privacy", href: "#" },
+              { label: "Features", href: "#features" },
+              { label: "Pricing", href: "#pricing" },
+              { label: "FAQ", href: "#faq" },
             ],
           },
         ]}
+        homeHref="/?tenant=example-press"
         base={
           <>
             <span>Internal design-system preview.</span>
-            <span>Built on the ink-and-gold tokens.</span>
+            <span>Built on the sticker-poster tokens.</span>
           </>
         }
       />

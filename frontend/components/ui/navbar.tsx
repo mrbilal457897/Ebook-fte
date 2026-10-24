@@ -12,11 +12,12 @@ export type NavbarProps = {
   links?: NavbarLink[]
   current?: string
   actions?: ReactNode
+  homeHref?: string
 }
 
-export function Navbar({ brand, links = [], current, actions }: NavbarProps) {
+export function Navbar({ brand, links = [], current, actions, homeHref = "/" }: NavbarProps) {
   const [open, setOpen] = useState(false)
-  const brandLink = brand ?? { label: "E-book FTE", href: "/" }
+  const brandLink = brand ?? { label: "E-book FTE", href: homeHref }
   const menuId = "ui-navbar-menu"
 
   return (
@@ -24,7 +25,7 @@ export function Navbar({ brand, links = [], current, actions }: NavbarProps) {
       <div className="ui-container">
         <div className="ui-navbar-inner">
           <Link href={brandLink.href} className="ui-navbar-brand">
-            <Logo size={24} />
+            <span className="ui-navbar-mark" aria-hidden="true"><Logo size={24} /></span>
             <span>{brandLink.label}</span>
           </Link>
 

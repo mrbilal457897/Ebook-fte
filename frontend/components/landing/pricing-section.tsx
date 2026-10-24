@@ -1,75 +1,39 @@
 "use client"
 
-import { PricingCard } from "@/components/ui"
+import Link from "next/link"
 
-/**
- * Pricing — one real tier (spec 005 Part IV §26, §7 row 7).
- *
- * ############################################################################
- * # OWNER ACTION BEFORE LAUNCH — paid tiers and dollar amounts must come     #
- * # from the confirmed Lago subscription decisions (AGENTS.md §2), not from  #
- * # here. Only the Free tier is shown because "3 free books, no card" is a  #
- * # documented product fact; inventing a price to look established is the   #
- * # §8.2 honesty contract applied to money.                                  #
- * ############################################################################
- *
- * The PricingCard is the Step-2 library component (`components/ui`), same
- * card used on /design-system — one pricing component across the product.
- *
- * SPEC: specs/005-visual-identity-scroll-hero/spec.md §26.
- */
-
-type PricingSectionProps = {
-  signedIn: boolean
-  primaryHref: string
-}
-
-const FREE_FEATURES = [
-  "3 books, start to finish",
-  "Cover concepts and revisions",
-  "EPUB, MOBI and print-ready PDF",
-  "Per-platform publishing checklists",
-  "Bring your own model key (BYOK)",
-  "No card required",
-]
-
-export default function PricingSection({ signedIn, primaryHref }: PricingSectionProps) {
+export default function PricingSection({ signedIn, primaryHref }: { signedIn: boolean; primaryHref: string }) {
   return (
-    <section
-      className="landing-section landing-pricing"
-      id="pricing"
-      aria-labelledby="pricing-title"
-    >
-      <h2 className="landing-section-title" id="pricing-title" data-reveal>
-        Pricing
-      </h2>
-      <p className="landing-section-sub" data-reveal>
-        One real tier today. Paid plans launch with billing — nothing is charged until then.
-      </p>
+    <section className="poster-section" id="pricing" aria-labelledby="pricing-title" style={{ background: "var(--yellow)", maxWidth: "100%", marginTop: 0, padding: "clamp(72px, 12vw, 112px) var(--space-4)", borderTop: "3px solid var(--ink)", borderBottom: "3px solid var(--ink)" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "clamp(24px, 6vw, 48px)", alignItems: "center" }}>
+        <div>
+          <span className="poster-kicker">Pricing</span>
+          <h2 className="poster-h2" id="pricing-title" style={{ marginTop: 18, marginBottom: 14 }}>
+            Free to start. Seriously.
+          </h2>
+          <p className="poster-body">
+            Paid plans arrive with billing. Pricing is announced before launch, so no surprise charges.
+          </p>
+        </div>
 
-      <div className="pricing-wrap" data-reveal>
-        <PricingCard
-          name="Free"
-          description="Everything you need to take one book from idea to a publishable package."
-          price="$0"
-          period="to start"
-          features={FREE_FEATURES}
-          cta={signedIn ? "Go to your workspace" : "Start my book free"}
-          href={primaryHref}
-          highlighted
-          badge="Free tier"
-        />
+        <article className="poster-card poster-pricing-card" style={{ boxShadow: "var(--shadow-xl)" }}>
+          <span className="poster-mono">Free tier</span>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(4rem, 12vw, 8rem)", letterSpacing: "-0.05em", lineHeight: 0.9 }}>
+            $0
+          </div>
+          <ul style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16, marginBottom: 24, lineHeight: 1.6 }}>
+            <li>3 books start to finish</li>
+            <li>Cover concepts and revisions</li>
+            <li>EPUB, MOBI, print PDF</li>
+            <li>Per-platform checklists</li>
+            <li>Bring your own key</li>
+            <li>No card required</li>
+          </ul>
+          <Link className="poster-btn poster-btn--blue" href={primaryHref} style={{ width: "100%" }}>
+            {signedIn ? "Go to your workspace" : "Start writing free"}
+          </Link>
+        </article>
       </div>
-
-      {/*
-        Paid-plans note is deliberately vague on numbers: unlimited books and
-        campaign workflows are documented product directions (AGENTS.md §2,
-        ads + generation), but the price is an owner decision, not ours.
-      */}
-      <p className="pricing-note" data-reveal>
-        Paid plans will add unlimited books and ad-campaign workflows. Pricing is announced before
-        launch &mdash; you will never find a surprise charge here.
-      </p>
     </section>
   )
 }

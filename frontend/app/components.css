@@ -1,5 +1,5 @@
 /*
- * Reusable component layer (Step 2 — design system).
+ * Reusable component layer (Step 2 â€” design system).
  * Tokens live in globals.css; this file only consumes them.
  * New classes are namespaced `ui-` so nothing here can collide with the
  * existing landing/auth/app classes. Button and field classes EXTEND the
@@ -57,13 +57,15 @@
 /* ---- Button: extends .btn-primary / .btn-secondary from globals.css ---- */
 
 .btn-ghost {
-  height: 40px;
+  min-height: 44px;
   padding: 0 var(--space-4);
-  font-size: var(--text-base);
-  background: transparent;
+  font-size: 16px;
+  font-weight: 800;
+  background: var(--white);
   color: var(--color-text);
-  border: 1px solid transparent;
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition:
     background var(--duration-fast) var(--ease-standard),
@@ -71,12 +73,13 @@
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--color-surface-raised);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-ghost:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .btn-ghost:disabled {
@@ -87,26 +90,28 @@
 /* Destructive = outline only. Never a filled-red first click target:
    the confirm step is where filling happens (see .is-solid). */
 .btn-destructive {
-  height: 40px;
+  min-height: 44px;
   padding: 0 var(--space-4);
   font-size: var(--text-base);
   background: transparent;
   color: var(--color-danger);
-  border: 1px solid var(--color-danger);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-sm);
-  cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition:
     background var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard);
 }
 
 .btn-destructive:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  background: #ffe0da;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-destructive:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .btn-destructive:disabled {
@@ -116,7 +121,7 @@
   cursor: not-allowed;
 }
 
-/* Filled destructive — confirm step only, never the first click target. */
+/* Filled destructive â€” confirm step only, never the first click target. */
 .btn-destructive.is-solid {
   background: var(--color-danger);
   color: var(--color-bg);
@@ -128,7 +133,7 @@
 }
 
 /* Every button, every variant, centres its content the same way. Also applied
-   to the legacy .btn-primary/.btn-secondary from globals.css — same rendering
+   to the legacy .btn-primary/.btn-secondary from globals.css â€” same rendering
    they already had, one shell instead of two. */
 .btn-primary,
 .btn-secondary,
@@ -140,7 +145,7 @@
   text-align: center;
 }
 
-/* Size variants — exactly three (skill: sm/md/lg), never a custom in-between.
+/* Size variants â€” exactly three (skill: sm/md/lg), never a custom in-between.
    .btn-primary is 48px (lg) in globals.css and .btn-secondary is 40px (md),
    so these classes only override when a component asks for a different size. */
 .btn-sm {
@@ -216,51 +221,42 @@
   line-height: var(--leading-normal);
   color: var(--color-text);
   background: var(--color-bg);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-sm);
   resize: vertical;
   transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .field-textarea:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-color: var(--color-accent);
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  border-color: var(--ink);
 }
 
 .field-select {
   width: 100%;
-  height: 40px;
+  height: 52px;
   padding: 0 var(--space-8) 0 var(--space-3);
   font-size: var(--text-base);
   font-family: inherit;
   color: var(--color-text);
   background: var(--color-bg);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-sm);
   appearance: none;
   cursor: pointer;
   transition: border-color var(--duration-fast) var(--ease-standard);
-  background-image:
-    linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position:
-    calc(100% - 18px) calc(50% + 1px),
-    calc(100% - 13px) calc(50% + 1px);
-  background-size:
-    5px 5px,
-    5px 5px;
-  background-repeat: no-repeat;
+  background-image: none;
 }
 
 .field-select:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-color: var(--color-accent);
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  border-color: var(--ink);
 }
 
 /* Error state: border carries the state, message sits in .field-error whose
-   min-height is already reserved — so validation never shifts layout. */
+   min-height is already reserved â€” so validation never shifts layout. */
 .field-input.is-error,
 .field-textarea.is-error,
 .field-select.is-error {
@@ -284,17 +280,18 @@
 
 .ui-card {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-md);
-  padding: var(--space-4);
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  box-shadow: var(--shadow-lg);
 }
 
 .ui-card.is-selected {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
+  box-shadow: var(--shadow-lg);
 }
 
 .ui-card.is-raised {
@@ -307,45 +304,42 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   line-height: 1;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-pill);
-  border: 1px solid transparent;
+  border: 2px solid var(--ink);
   white-space: nowrap;
 }
 
 .ui-badge-neutral {
-  color: var(--color-text-muted);
-  background: var(--color-surface-raised);
-  border-color: var(--color-border-strong);
+  color: var(--ink);
+  background: var(--white);
 }
 
 .ui-badge-success {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-success) 55%, transparent);
+  color: var(--ink);
+  background: #d9f3e3;
 }
 
 .ui-badge-warning {
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-warning) 55%, transparent);
+  color: var(--ink);
+  background: #fff0c0;
 }
 
 .ui-badge-danger {
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-danger) 55%, transparent);
+  color: var(--ink);
+  background: #ffe0da;
 }
 
-/* Decorative/brand only — never a status (gold/amber are indistinguishable). */
+/* Decorative/brand only â€” never a status (gold/amber are indistinguishable). */
 .ui-badge-accent {
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  color: var(--ink);
+  background: var(--coral);
 }
 
 .ui-badge-dot {
@@ -362,17 +356,17 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-border);
-  /* Transform-only, so `navbarHideOnScroll` slides it without reflow.
-     The class itself is only ever added by that preset, which is gated
-     on prefers-reduced-motion (lib/motion/presets.ts). */
-  transition: transform var(--duration-base) var(--ease-standard);
+  background: var(--paper);
+  border-bottom: var(--border-w) solid var(--ink);
 }
 
 .ui-navbar.is-hidden {
   transform: translateY(-100%);
+}
+
+.ui-navbar {
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
 }
 
 .ui-navbar-inner {
@@ -399,6 +393,23 @@
   color: var(--color-accent);
 }
 
+.ui-navbar-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--blue);
+  border: var(--border-w) solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.ui-navbar-mark svg {
+  width: 24px;
+  height: 24px;
+}
+
 .ui-navbar-links {
   display: none;
   align-items: center;
@@ -417,16 +428,17 @@
 }
 
 .ui-navbar-link:hover {
-  color: var(--color-text);
+  color: var(--blue);
 }
 
 .ui-navbar-link:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .ui-navbar-link[aria-current="page"] {
-  color: var(--color-text);
+  color: var(--blue);
+  font-weight: 800;
 }
 
 .ui-navbar-actions {
@@ -443,14 +455,14 @@
   height: 44px;
   background: transparent;
   color: var(--color-text);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-sm);
-  cursor: pointer;
+  box-shadow: var(--shadow-sm);
 }
 
 .ui-navbar-toggle:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .ui-navbar-menu {
@@ -458,7 +470,7 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-2) 0 var(--space-4);
-  border-top: 1px solid var(--color-border);
+  border-top: var(--border-w) solid var(--ink);
 }
 
 .ui-navbar-menu .ui-navbar-link {
@@ -483,8 +495,8 @@
 /* ---- Footer ---- */
 
 .ui-footer {
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-top: var(--border-w) solid var(--ink);
+  background: var(--paper);
   padding-block: var(--space-12) var(--space-6);
   margin-top: var(--space-16);
 }
@@ -546,9 +558,16 @@
 }
 
 .ui-footer-link:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
   border-radius: var(--radius-xs);
+}
+
+.ui-footer-heading,
+.ui-footer-base {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .ui-footer-base {
@@ -557,7 +576,7 @@
   gap: var(--space-4);
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--color-border);
+  border-top: var(--border-w) solid var(--ink);
   padding-top: var(--space-6);
   color: var(--color-text-muted);
   font-size: var(--text-xs);
@@ -573,9 +592,15 @@
 
 .ui-accordion-item {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
+}
+
+.ui-accordion-trigger {
+  font-weight: 800;
+  font-size: 20px;
 }
 
 .ui-accordion-trigger {
@@ -589,7 +614,8 @@
   background: transparent;
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: var(--text-base);
+  font-size: 20px;
+  font-weight: 800;
   line-height: var(--leading-tight);
   text-align: left;
   border: none;
@@ -598,12 +624,12 @@
 }
 
 .ui-accordion-trigger:hover {
-  background: var(--color-surface-raised);
+  background: #fff8e9;
 }
 
 .ui-accordion-trigger:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
+  outline: 3px solid var(--blue);
+  outline-offset: -3px;
 }
 
 .ui-accordion-marker {
@@ -654,6 +680,7 @@
   line-height: var(--leading-normal);
   color: var(--color-text-muted);
   max-width: 62ch;
+  padding-bottom: var(--space-6);
 }
 
 /* ---- Modal ---- */
@@ -665,7 +692,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: rgb(0 0 0 / 0.55);
+  background: rgb(17 17 17 / 0.62);
   animation: ui-fade-in var(--duration-fast) var(--ease-standard);
 }
 
@@ -675,7 +702,7 @@
   max-height: calc(100vh - var(--space-8));
   overflow-y: auto;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-nav);
   padding: var(--space-6);
@@ -683,6 +710,17 @@
   flex-direction: column;
   gap: var(--space-4);
   animation: ui-modal-in var(--duration-base) var(--ease-standard);
+}
+
+.ui-modal-title {
+  font-weight: 800;
+}
+
+.ui-modal-actions .btn-primary,
+.ui-modal-actions .btn-secondary,
+.ui-modal-actions .btn-ghost,
+.ui-modal-actions .btn-destructive {
+  min-height: 48px;
 }
 
 .ui-modal-title {
@@ -746,11 +784,15 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
-  border-left: 3px solid var(--color-accent);
+  border: var(--border-w) solid var(--ink);
+  border-left: 8px solid var(--color-accent);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-card);
   animation: ui-toast-in var(--duration-base) var(--ease-standard);
+}
+
+.ui-toast-title {
+  font-weight: 800;
 }
 
 .ui-toast-success {
@@ -774,7 +816,7 @@
 
 .ui-toast-title {
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 800;
   color: var(--color-text);
 }
 
@@ -797,7 +839,7 @@
   color: var(--color-text-muted);
   border: none;
   border-radius: var(--radius-sm);
-  cursor: pointer;
+  box-shadow: var(--shadow-sm);
 }
 
 .ui-toast-close:hover {
@@ -805,8 +847,8 @@
 }
 
 .ui-toast-close:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 @media (pointer: coarse) {
@@ -827,15 +869,10 @@
 
 .ui-skeleton {
   display: block;
-  background: linear-gradient(
-    90deg,
-    var(--color-surface-raised) 0%,
-    color-mix(in srgb, var(--color-border) 60%, var(--color-surface-raised)) 50%,
-    var(--color-surface-raised) 100%
-  );
-  background-size: 200% 100%;
+  background: #e6dfd2;
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-xs);
-  animation: ui-shimmer 1.4s ease-in-out infinite;
+  animation: ui-skeleton-pulse 1.4s ease-in-out infinite alternate;
 }
 
 .ui-skeleton-text {
@@ -843,12 +880,12 @@
   border-radius: var(--radius-pill);
 }
 
-@keyframes ui-shimmer {
+@keyframes ui-skeleton-pulse {
   from {
-    background-position: 200% 0;
+    opacity: 0.65;
   }
   to {
-    background-position: -200% 0;
+    opacity: 1;
   }
 }
 
@@ -863,7 +900,7 @@
   height: 40px;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: var(--border-w) solid var(--ink);
   color: var(--color-accent);
   font-family: var(--font-body);
   font-size: var(--text-sm);
@@ -905,7 +942,7 @@
 }
 
 /* Interactive rating: native radios under the stars, so arrow-key support
-   and form semantics come free — no custom roving-tabindex to get wrong. */
+   and form semantics come free â€” no custom roving-tabindex to get wrong. */
 .ui-rating-inputs {
   position: relative;
 }
@@ -921,8 +958,8 @@
 }
 
 .ui-rating-inputs input:focus-visible + label {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
   border-radius: var(--radius-xs);
 }
 
@@ -944,11 +981,15 @@
   padding: var(--space-6);
   gap: var(--space-4);
   position: relative;
+  background: var(--white);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
 }
 
 .ui-pricing.is-highlighted {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
+  box-shadow: var(--shadow-xl);
 }
 
 .ui-pricing-badge {
@@ -995,7 +1036,7 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4) 0 0;
-  border-top: 1px solid var(--color-border);
+  border-top: var(--border-w) solid var(--ink);
 }
 
 .ui-pricing-feature {
@@ -1031,16 +1072,5 @@
 
   .ui-skeleton {
     animation: none;
-    background: var(--color-surface-raised);
+    opacity: 1;
   }
-
-  .ui-accordion-panel {
-    transition: none;
-  }
-
-  .ui-modal-backdrop,
-  .ui-modal,
-  .ui-toast {
-    animation: none;
-  }
-}

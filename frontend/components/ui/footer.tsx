@@ -11,15 +11,16 @@ export type FooterProps = {
   tagline?: string
   columns?: FooterColumn[]
   base?: ReactNode
+  homeHref?: string
 }
 
-export function Footer({ tagline, columns = [], base }: FooterProps) {
+export function Footer({ tagline, columns = [], base, homeHref = "/" }: FooterProps) {
   return (
     <footer className="ui-footer">
       <div className="ui-container">
         <div className="ui-footer-grid">
           <div className="ui-footer-brand">
-            <Link href="/" className="ui-navbar-brand" style={{ marginRight: 0 }}>
+            <Link href={homeHref} className="ui-navbar-brand" style={{ marginRight: 0 }}>
               <Logo size={24} />
               <span>E-book FTE</span>
             </Link>

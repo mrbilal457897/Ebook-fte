@@ -1,12 +1,23 @@
 # Slice 005 - Visual identity + scroll-book hero (spec)
 
+> **Design-system amendment, 2026-10-24:** The original ink-and-gold palette,
+> Literata/Inter interface pairing, and dark/light theme described in Parts I–III
+> below are historical and superseded for the frontend by the sticker-poster
+> system: `#FFF6E6` paper, `#111111` ink, cobalt/coral/yellow/mint accents,
+> Bricolage Grotesque display/body, DM Mono labels, and a light-only interface.
+> Hard offset shadows replace blurred elevation. The scroll-book/scroll-pinned
+> hero remains retired; the landing uses a static cover composition. The
+> governing current rules are in `.claude/skills/ebook-fte-design-system/SKILL.md`
+> and `frontend/app/globals.css`. Older acceptance criteria below record the
+> original slice and are not current design requirements where they conflict
+> with this amendment.
+
 **Date:** 2026-10-03 (Part II — landing structure — added same day, after
 Checkpoint 2; see §6 onward)
 **Supersedes:** nothing. **Constrains:** AGENTS.md §2 (Next.js 15 App Router),
 constitution Article VI (GSAP-driven motion) and Article II (spec before code).
-**Governing Skill:** `.claude/skills/ebook-fte-design-system/SKILL.md` — this
-slice updates that Skill's token block rather than creating a parallel set of
-tokens.
+**Governing Skill:** `.claude/skills/ebook-fte-design-system/SKILL.md` — amended
+2026-10-24 with the sticker-poster system; see the supersession notice above.
 
 Part I (§1–§5) covers tokens, typography, theming and the hero. Part II (§6–§15)
 covers the marketing landing page structure that consumes them.
@@ -974,5 +985,3 @@ breakpoints, all in DOM order with no content reordering.
 `feature-rows.tsx`, `how-it-works.tsx` (steps), `see-it-in-action.tsx`,
 `scroll-book-hero.tsx`. Their `globals.css` blocks were removed; their component
 files are kept as the rollback point for Step 4.
-
-

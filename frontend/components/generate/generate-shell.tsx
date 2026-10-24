@@ -5,7 +5,7 @@ import gsap from "gsap"
 import { prefersReducedMotion } from "@/lib/motion-preference"
 
 /**
- * Generation workspace shell: centered panel on the dark canvas with a GSAP
+ * Generation workspace shell: centered sticker panel on the paper canvas with a GSAP
  * entrance (fade + 12px rise, staggered children, `prefers-reduced-motion`
  * respected).
  */

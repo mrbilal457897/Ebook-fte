@@ -151,7 +151,7 @@ export default function SettingsPage() {
       <div ref={rootRef} className="app-panel">
         <header className="app-head">
           <h1 className="app-title">Settings</h1>
-          <a className="landing-signin" href="/generate">
+          <a className="btn-secondary" href="/generate">
             Back to writing
           </a>
         </header>
@@ -205,11 +205,11 @@ export default function SettingsPage() {
         {notice ? <p className="banner is-warn">{notice}</p> : null}
 
         <section className="field">
-          <h2 className="landing-section-title">Saved keys</h2>
+          <h2 className="app-title">Saved keys</h2>
           {loading ? (
-            <p className="landing-feature-body">Loading…</p>
+            <p className="auth-subtitle">Loading...</p>
           ) : credentials.length === 0 ? (
-            <p className="landing-feature-body">
+            <p className="auth-subtitle">
               No keys connected yet — you are generating on our platform key, which has a small free
               allowance.
             </p>

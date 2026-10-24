@@ -1,26 +1,5 @@
 "use client"
 
-import { useId, useState } from "react"
-
-/**
- * FAQ: the six questions a non-technical first-time author actually has.
- *
- * These answers do the product's real job on this page — reducing first-use
- * fear, which is an explicit requirement for the Onboarding/Support Chatbot's
- * tone and therefore for every customer-facing surface.
- *
- * A REAL ACCORDION, not a list of toggles:
- * - Each trigger is a `<button>` with `aria-expanded` and `aria-controls`; each
- *   panel is labelled by its trigger. Divs with onClick are not buttons and are
- *   not keyboard reachable.
- * - ONE panel open at a time. Two open answers mean the section grows taller
- *   than the visitor expected and the "one answer" reading is lost.
- * - The panel is unmounted when closed rather than hidden with CSS, so its
- *   contents stay out of the accessibility tree and out of find-in-page.
- *
- * SPEC: specs/005-visual-identity-scroll-hero/spec.md §12.
- */
-
 const FAQS = [
   {
     q: "I have never written anything. Do I need experience?",
@@ -49,51 +28,33 @@ const FAQS = [
 ]
 
 export default function Faq() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-  const baseId = useId()
-
   return (
-    <section className="landing-section landing-faq" id="faq" aria-labelledby="landing-faq-title">
-      <h2 className="landing-section-title" id="landing-faq-title" data-reveal>
+    <section className="poster-section" id="faq" aria-labelledby="landing-faq-title">
+      <h2 className="poster-h2" id="landing-faq-title" style={{ marginBottom: "clamp(24px, 6vw, 40px)" }}>
         Questions people actually ask
       </h2>
 
-      <div className="landing-faq-list">
-        {FAQS.map((faq, index) => {
-          const isOpen = openIndex === index
-          const triggerId = `${baseId}-q-${index}`
-          const panelId = `${baseId}-a-${index}`
-
-          return (
-            <div className="landing-faq-item" key={faq.q} data-reveal>
-              <h3 className="landing-faq-heading">
-                <button
-                  type="button"
-                  className="landing-faq-trigger"
-                  id={triggerId}
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                  onClick={() => setOpenIndex(isOpen ? null : index)}
-                >
-                  <span className="landing-faq-question">{faq.q}</span>
-                  {/* Decorative: the state is already on aria-expanded. */}
-                  <span className="landing-faq-marker" aria-hidden="true" />
-                </button>
-              </h3>
-
-              {isOpen && (
-                <div
-                  className="landing-faq-panel"
-                  id={panelId}
-                  role="region"
-                  aria-labelledby={triggerId}
-                >
-                  <p className="landing-faq-answer">{faq.a}</p>
-                </div>
-              )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {FAQS.map((faq) => (
+          <details key={faq.q} className="poster-card" style={{ padding: 0 }}>
+            <summary
+              style={{
+                cursor: "pointer",
+                padding: "18px 24px",
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize: "clamp(18px, 2vw, 22px)",
+                letterSpacing: "-0.02em",
+                listStyle: "none",
+              }}
+            >
+              {faq.q}
+            </summary>
+            <div style={{ padding: "0 24px 20px", lineHeight: 1.6 }}>
+              <p>{faq.a}</p>
             </div>
-          )
-        })}
+          </details>
+        ))}
       </div>
     </section>
   )

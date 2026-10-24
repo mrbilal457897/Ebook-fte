@@ -13,40 +13,8 @@ import Faq from "@/components/landing/faq"
 import FinalCta from "@/components/landing/final-cta"
 import MobileCtaBar from "@/components/landing/mobile-cta-bar"
 import SiteFooter from "@/components/landing/site-footer"
-import Preloader from "@/components/landing/preloader"
 import PaperGrain from "@/components/landing/paper-grain"
-import AuroraBackground from "@/components/landing/aurora-background"
-import { useMagneticButtons, useSectionReveal } from "@/components/landing/motion-hooks"
 
-/**
- * Composition root for the public landing page at `/`.
- *
- * This file arranges sections and holds the two page-wide behaviours (section
- * entrance, magnetic buttons). It owns no choreography of its own — every
- * animation belongs to the component that has the elements it animates, which is
- * why two timelines can never end up fighting over the same node.
- *
- * SECTION ORDER is the Step-4 SaaS order recorded in
- * `specs/005-visual-identity-scroll-hero/spec.md` §7 (Part IV §25 supersedes the
- * old §7 order):
- *
- *   hero → trust → capabilities bento → how-it-works tour → who it's for →
- *   founder note → pricing → FAQ → one closing ask
- *
- * The old alternating feature rows, standalone demo, and standalone steps are
- * superseded (bento + tour absorb them); their files remain on disk, unimported.
- * Still no testimonial section — not an empty one. It returns when there are
- * real attributed quotes.
- *
- * TENANT THREADING (FR-010) lives here and nowhere else: every link toward auth
- * carries `?tenant=<slug>`, and a visitor who arrived on a subscribing company's
- * branded link must stay bound to it. The slug is threaded into the masthead,
- * the hero, the pricing CTA, the final CTA, and the mobile CTA bar; in-page
- * anchors never carry it because they are not tenant-scoped (§10).
- *
- * An already-authed visitor sees the same page with the primary action pointed at
- * their workspace instead of a redundant sign-up.
- */
 export default function Landing({
   signedIn,
   tenantSlug,
@@ -56,9 +24,6 @@ export default function Landing({
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
 
-  useSectionReveal(rootRef)
-  useMagneticButtons(rootRef)
-
   const tenantQuery = `?tenant=${encodeURIComponent(tenantSlug)}`
   const homeHref = `/${tenantQuery}`
   const primaryHref = signedIn ? "/generate" : `/signup${tenantQuery}`
@@ -67,11 +32,8 @@ export default function Landing({
 
   return (
     <>
-      <Preloader />
-      <AuroraBackground />
-      <PaperGrain />
-
-      <div ref={rootRef} className="landing">
+      <div ref={rootRef} className="landing poster">
+        <PaperGrain />
         <Masthead
           signedIn={signedIn}
           primaryHref={primaryHref}
@@ -81,11 +43,40 @@ export default function Landing({
 
         <Hero signedIn={signedIn} primaryHref={primaryHref} signInHref={signInHref} />
 
+        <div className="poster-ribbon" aria-hidden="true">
+          <div className="poster-ribbon-inner">
+            <span>Amazon KDP</span>
+            <span className="poster-ribbon-dot">★</span>
+            <span>Apple Books</span>
+            <span className="poster-ribbon-dot">★</span>
+            <span>IngramSpark</span>
+            <span className="poster-ribbon-dot">★</span>
+            <span>EPUB</span>
+            <span className="poster-ribbon-dot">★</span>
+            <span>MOBI</span>
+            <span className="poster-ribbon-dot">★</span>
+            <span>Print PDF</span>
+          </div>
+        </div>
+
         <SocialProof />
 
         <LearnBento />
 
         <HowItWorksTour />
+
+        <section className="poster-section">
+          <div className="poster-card poster-card--coral poster-control-block">
+            <h2 className="poster-h2">It stops. You decide.</h2>
+            <p className="poster-body" style={{ maxWidth: 760 }}>
+              It cannot publish, spend, or run up a bill without a person saying so. Bring your own
+              model key and your words never pass through anyone else&apos;s account.
+            </p>
+            <a className="poster-btn poster-btn--white" href="#why-we-built-it">
+              Why we built it
+            </a>
+          </div>
+        </section>
 
         <WhoItsFor />
 
@@ -99,7 +90,12 @@ export default function Landing({
 
         <MobileCtaBar primaryHref={primaryHref} label={primaryLabel} />
 
-        <SiteFooter signedIn={signedIn} primaryHref={primaryHref} signInHref={signInHref} />
+        <SiteFooter
+          signedIn={signedIn}
+          primaryHref={primaryHref}
+          signInHref={signInHref}
+          homeHref={homeHref}
+        />
       </div>
     </>
   )
