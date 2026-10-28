@@ -4,24 +4,24 @@ import Link from "next/link"
 
 export default function PricingSection({ signedIn, primaryHref }: { signedIn: boolean; primaryHref: string }) {
   return (
-    <section className="poster-section" id="pricing" aria-labelledby="pricing-title" style={{ background: "var(--yellow)", maxWidth: "100%", marginTop: 0, padding: "clamp(72px, 12vw, 112px) var(--space-4)", borderTop: "3px solid var(--ink)", borderBottom: "3px solid var(--ink)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "clamp(24px, 6vw, 48px)", alignItems: "center" }}>
+    <section className="v3-section v3-light v3-pricing" id="pricing" aria-labelledby="pricing-title">
+      <div className="v3-container v3-pricing-grid">
         <div>
-          <span className="poster-kicker">Pricing</span>
-          <h2 className="poster-h2" id="pricing-title" style={{ marginTop: 18, marginBottom: 14 }}>
+          <span className="v3-label">Pricing</span>
+          <h2 className="v3-h2" id="pricing-title">
             Free to start. Seriously.
           </h2>
-          <p className="poster-body">
+          <p className="v3-pricing-lede">
             Paid plans arrive with billing. Pricing is announced before launch, so no surprise charges.
           </p>
         </div>
 
-        <article className="poster-card poster-pricing-card" style={{ boxShadow: "var(--shadow-xl)" }}>
-          <span className="poster-mono">Free tier</span>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(4rem, 12vw, 8rem)", letterSpacing: "-0.05em", lineHeight: 0.9 }}>
+        <article className="v3-price-card">
+          <span className="v3-label">Free tier</span>
+          <div className="v3-price-amount">
             $0
           </div>
-          <ul style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16, marginBottom: 24, lineHeight: 1.6 }}>
+          <ul className="v3-price-list">
             <li>3 books start to finish</li>
             <li>Cover concepts and revisions</li>
             <li>EPUB, MOBI, print PDF</li>
@@ -29,7 +29,7 @@ export default function PricingSection({ signedIn, primaryHref }: { signedIn: bo
             <li>Bring your own key</li>
             <li>No card required</li>
           </ul>
-          <Link className="poster-btn poster-btn--blue" href={primaryHref} style={{ width: "100%" }}>
+          <Link className="v3-btn v3-btn-ivory mag" href={primaryHref}>
             {signedIn ? "Go to your workspace" : "Start writing free"}
           </Link>
         </article>

@@ -12,36 +12,37 @@ export default function SiteFooter({
   homeHref: string
 }) {
   return (
-    <footer style={{ borderTop: "var(--border-w) solid var(--ink)", marginTop: "clamp(48px, 10vw, 96px)" }}>
-      <div className="poster-section" style={{ paddingBottom: "clamp(32px, 8vw, 64px)" }}>
-        <Link href={homeHref} aria-label="E-book FTE home" style={{ display: "block", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(4rem, 16vw, 10rem)", letterSpacing: "-0.06em", lineHeight: 0.85, color: "var(--blue)", marginBottom: "clamp(24px, 6vw, 40px)" }}>
-          E-book FTE
+    <footer className="v3-footer">
+      <div className="v3-container">
+        <Link href={homeHref} aria-label="Tomewick AI home" className="v3-footer-logo">
+          <strong>Tomewick AI</strong><small>E-book</small>
         </Link>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24 }}>
+        <div className="v3-footer-columns">
           <div>
-            <p className="poster-mono" style={{ marginBottom: 10 }}>
+            <p className="v3-label">
               Product
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="v3-footer-links">
               <a href="#features">Features</a>
               <a href="#how-it-works">How it works</a>
+              <a href="#shelf">Covers</a>
               <a href="#pricing">Pricing</a>
               <a href="#faq">FAQ</a>
             </div>
           </div>
           <div>
-            <p className="poster-mono" style={{ marginBottom: 10 }}>
+            <p className="v3-label">
               Account
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="v3-footer-links">
               {!signedIn && <Link href={signInHref}>Sign in</Link>}
               <Link href={primaryHref}>{signedIn ? "Go to workspace" : "Start my book free"}</Link>
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginTop: "clamp(32px, 8vw, 56px)", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <div className="v3-footer-base">
           <span>© {new Date().getFullYear()} E-book FTE</span>
           <span>Independent authors, published on their own terms</span>
         </div>

@@ -1,39 +1,39 @@
 /*
  * Design tokens - single source of truth.
  *
- * DIRECTION (2026-10): "sticker poster". Cream paper, saturated colour blocks,
- * thick ink outlines, hard offset shadows with no blur, tilted accents. No
- * gradients, no blurs, no glassmorphism. Dark mode was removed with this
- * direction: the product is cream-and-ink only.
- *
- * Palette tokens (--paper, --ink, --blue, --coral, --yellow, --mint) are the
- * raw hues. Component CSS consumes the semantic --color-* aliases below, so a
- * hue change never has to be hunted through a stylesheet.
+ * E-book FTE v3: warm paper and dark ink with gold/rust accents. Shared
+ * semantic aliases keep the existing auth/workspace UI on the same palette.
  */
 :root {
-  --paper: #fff6e6;
-  --ink: #111111;
-  --blue: #2b2bff;
-  --coral: #ff5a36;
-  --yellow: #ffd23f;
-  --mint: #3ddc97;
+  --ink: #0b0c10;
+  --ink2: #15171e;
+  --ivory: #f4efe6;
+  --mut: #a9adbb;
+  --mut2: #505567;
+  --gold: #ffb938;
+  --rust: #c2410c;
+  --paper: var(--ivory);
   --white: #ffffff;
-  --muted-ink: #4a4a4a;
+  --blue: #3b4ba8;
+  --coral: #f26b3a;
+  --yellow: #f5b83d;
+  --mint: #8fb996;
+  --muted-ink: var(--mut2);
 
-  --color-bg: var(--paper);
-  --color-surface: var(--white);
-  --color-surface-raised: var(--white);
-  --color-border: var(--ink);
-  --color-border-strong: var(--ink);
-  --color-paper: var(--white);
-  --color-paper-edge: var(--ink);
-  --color-text: var(--ink);
-  --color-text-muted: var(--muted-ink);
+  --color-bg: var(--ink);
+  --color-surface: var(--ink2);
+  --color-surface-raised: #20232d;
+  --color-border: #2a2e3a;
+  --color-border-strong: #505567;
+  --color-paper: var(--ivory);
+  --color-paper-edge: #e9dcc3;
+  --color-text: var(--ivory);
+  --color-text-muted: var(--mut);
 
-  --color-accent: var(--coral);
-  --color-accent-hover: #e8492a;
+  --color-accent: var(--gold);
+  --color-accent-hover: #f0a51d;
   --color-accent-ink: var(--ink);
-  --color-accent-deep: #b3300f;
+  --color-accent-deep: var(--rust);
 
   --color-success: #147a46;
   --color-warning: #8a5a08;
@@ -50,10 +50,10 @@
  */
 :root,
 body {
-  --font-display: var(--font-bricolage), "Arial Black", system-ui, sans-serif;
-  --font-body: var(--font-bricolage), system-ui, -apple-system, sans-serif;
-  --font-label: var(--font-dm-mono), ui-monospace, "Courier New", monospace;
-  --font-reading: var(--font-literata), Georgia, serif;
+  --font-display: var(--font-sora), system-ui, sans-serif;
+  --font-body: var(--font-jakarta), system-ui, sans-serif;
+  --font-label: var(--font-plex-mono), ui-monospace, monospace;
+  --font-reading: var(--font-dm-serif), Georgia, serif;
 
   /* Font-size scale (fixed steps for product UI, fluid display steps below) */
   --text-xs: 12px;

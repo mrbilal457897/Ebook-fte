@@ -29,32 +29,24 @@ const FAQS = [
 
 export default function Faq() {
   return (
-    <section className="poster-section" id="faq" aria-labelledby="landing-faq-title">
-      <h2 className="poster-h2" id="landing-faq-title" style={{ marginBottom: "clamp(24px, 6vw, 40px)" }}>
+    <section className="v3-section v3-faq" id="faq" aria-labelledby="landing-faq-title">
+      <div className="v3-container">
+      <h2 className="v3-h2" id="landing-faq-title">
         Questions people actually ask
       </h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="v3-faq-grid">
         {FAQS.map((faq) => (
-          <details key={faq.q} className="poster-card" style={{ padding: 0 }}>
-            <summary
-              style={{
-                cursor: "pointer",
-                padding: "18px 24px",
-                fontFamily: "var(--font-display)",
-                fontWeight: 800,
-                fontSize: "clamp(18px, 2vw, 22px)",
-                letterSpacing: "-0.02em",
-                listStyle: "none",
-              }}
-            >
+          <details key={faq.q} className="v3-faq-item">
+            <summary>
               {faq.q}
             </summary>
-            <div style={{ padding: "0 24px 20px", lineHeight: 1.6 }}>
+            <div className="v3-faq-answer">
               <p>{faq.a}</p>
             </div>
           </details>
         ))}
+      </div>
       </div>
     </section>
   )

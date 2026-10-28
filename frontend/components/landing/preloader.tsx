@@ -40,8 +40,13 @@ export default function Preloader() {
 
   useEffect(() => {
     // The head script sets this only on a session's first load of a page that
-    // has a preloader. Absent means we have already seen it this session.
-    if (document.documentElement.dataset.preloader !== "run") return
+    // has a preloader. Absent means we have already seen it this session — or
+    // the script never ran. Either way the overlay must not stay up, so we
+    // remove it immediately.
+    if (document.documentElement.dataset.preloader !== "run") {
+      setDone(true)
+      return
+    }
 
     let timer: ReturnType<typeof setTimeout> | undefined
     let exited = false
@@ -89,10 +94,23 @@ export default function Preloader() {
 
   return (
     <div className={`preloader ${exiting ? "is-exiting" : ""}`} aria-hidden="true">
-      <span className="preloader-mark">
-        <span className="preloader-mark-rule" />
-        E-book&nbsp;FTE
-      </span>
+      <div className="preloader-inner">
+        {/*
+          CSS-keyframed open-book loader: the tally is the product promise —
+          a book being written and bound while you wait, not a spinner.
+        */}
+        <div className="preloader-book">
+          <span className="preloader-page preloader-page-1" />
+          <span className="preloader-page preloader-page-2" />
+          <span className="preloader-page preloader-page-3" />
+          <span className="preloader-book-l" />
+          <span className="preloader-book-r" />
+        </div>
+        <span className="preloader-mark">
+          <span className="preloader-mark-rule" />
+          Tomewick <b>AI</b><small>E-book</small>
+        </span>
+      </div>
     </div>
   )
 }

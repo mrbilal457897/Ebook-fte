@@ -54,10 +54,10 @@ export default function Masthead({
   return (
     <header className="poster-header">
       <div className="poster-header-inner">
-        <Link className="poster-logo" href={homeHref} aria-label="E-book FTE home">
+        <Link className="poster-logo" href={homeHref} aria-label="Tomewick AI home">
           <span className="poster-logo-mark" aria-hidden="true" />
           <span>
-            E-book <span style={{ color: "var(--blue)" }}>FTE</span>
+            Tomewick <span className="poster-logo-ai">AI</span><small>E-book</small>
           </span>
         </Link>
 
@@ -68,6 +68,7 @@ export default function Masthead({
           <a className="poster-nav-link" href="#how-it-works">
             How it works
           </a>
+          <a className="poster-nav-link" href="#shelf">Covers</a>
           <a className="poster-nav-link" href="#pricing">
             Pricing
           </a>

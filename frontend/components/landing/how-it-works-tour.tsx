@@ -1,5 +1,7 @@
 "use client"
 
+import { Book, COVERS } from "@/components/landing/book"
+
 const STEPS = [
   {
     num: "01",
@@ -30,50 +32,45 @@ const STEPS = [
 
 export default function HowItWorksTour() {
   return (
-    <section className="poster-section" id="how-it-works" aria-labelledby="tour-title" style={{ background: "var(--ink)", color: "var(--white)", maxWidth: "100%", padding: "clamp(72px, 12vw, 112px) var(--space-4)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <span className="poster-kicker" style={{ background: "var(--yellow)", color: "var(--ink)" }}>
+    <section className="v3-section v3-how" id="how-it-works" aria-labelledby="tour-title">
+      <div className="v3-container v3-how-grid">
+        <div className="v3-how-copy">
+        <span className="v3-label">
           How it works
         </span>
-        <h2 className="poster-h2" id="tour-title" style={{ marginTop: 18, marginBottom: "clamp(24px, 6vw, 40px)" }}>
+        <h2 className="v3-h2" id="tour-title">
           Five steps. Only the last one is yours.
         </h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-            gap: 18,
-          }}
-        >
+        <ol className="v3-step-list">
           {STEPS.map((step, index) => (
-            <article
-              key={step.num}
-              className="poster-card"
-              style={{
-                background: index === 4 ? "var(--coral)" : "transparent",
-                color: index === 4 ? "var(--ink)" : "var(--white)",
-                borderColor: "var(--white)",
-                boxShadow: index === 4 ? "var(--shadow-lg)" : "none",
-              }}
-            >
-              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(2.4rem, 6vw, 4rem)", color: "var(--yellow)" }}>
+            <li key={step.num} className={`v3-step${index === 4 ? " is-last" : ""}`}>
+              <span className="v3-step-num">
                 {step.num}
               </span>
-              <h3 className="poster-h3" style={{ marginTop: 10, marginBottom: 10 }}>
-                {step.title}
-              </h3>
-              <p style={{ color: index === 4 ? "var(--ink)" : "#E4E1F5", lineHeight: 1.6 }}>
-                {step.body}
-              </p>
-            </article>
+              <div><h3>{step.title}</h3><p>{step.body}</p></div>
+            </li>
           ))}
-        </div>
+        </ol>
 
-        <p className="poster-mono" style={{ marginTop: 18, color: "rgba(255,255,255,0.7)" }}>
+        <p className="v3-label v3-script-note">
           Step 3 is a scripted demonstration using the real writing panel — not a recording of a
           session. It lets you see a finished draft without spending one of your free books.
         </p>
+        </div>
+        <div className="v3-story-stage" aria-label="Book preparation story preview">
+          <div className="v3-story-cover"><Book cover={COVERS[2]} decorative /></div>
+          <div className="v3-manuscript" aria-hidden="true">
+            <strong>The Quiet Tide</strong>
+            <i /><i /><i /><i /><i /><i /><i />
+          </div>
+          <div className="v3-format-chips"><span>EPUB</span><span>MOBI</span><span>PDF</span></div>
+          <div className="v3-package-card">
+            <b>Submission package</b>
+            <span>✓ &nbsp;KDP</span><span>✓ &nbsp;Apple Books</span><span>✓ &nbsp;IngramSpark</span>
+            <strong>Publish · your click</strong>
+          </div>
+        </div>
       </div>
     </section>
   )
