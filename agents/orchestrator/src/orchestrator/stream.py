@@ -3,7 +3,8 @@
 This is the integration seam for the T011 spike facts (pinned
 `google-adk==2.9.2`):
   - `event.partial is True` and `event.content` set  -> text delta -> `token`
-  - `event.partial is False` and `event.turn_complete is True` -> `version`
+  - terminal (`version`): see `_is_terminal` below — `turn_complete=True`
+    (fake/spike path) OR `is_final_response()` with text (real path)
   - content parts are genai `Part` objects (.text, not ["text"])
   - `invocation_id` correlates the run to the transplanted business records
 
@@ -48,6 +49,29 @@ async def _invoke(hook: Callable[[Any], Any] | None, arg: Any) -> None:
     result = hook(arg)
     if inspect.isawaitable(result):
         await result
+
+
+def _is_terminal(event: Any) -> bool:
+    """Is this event the run's final, content-carrying response?
+
+    Two shapes reach the same terminal signal (verified live, 2026-10-29,
+    against the pinned google-adk==2.9.2 real Gemini path):
+
+    - The spike-tested fake/generic path: `partial=False` +
+      `turn_complete=True` (tests/test_stream_api.py pins this).
+    - The real streaming path (PROGRESSIVE_SSE_STREAMING aggregation):
+      the consolidated final event arrives with `turn_complete=None`,
+      but `Event.is_final_response()` is True and it carries the full
+      accumulated text. Relying on `turn_complete` alone made the relay end
+      mid-stream with "stream closed" and never emit `version`.
+
+    Empty-text final events (e.g. an agent turn-end with no content) still do
+    not finalize: a terminal event must carry text or an explicit
+    turn-complete flag, so a no-op final event cannot swallow the stream.
+    """
+    if event.partial or not event.is_final_response():
+        return False
+    return bool(_event_text(event) or event.turn_complete)
 
 
 async def stream_generation(
@@ -102,7 +126,7 @@ async def stream_generation(
                     await _invoke(on_token, delta)
                 full_text.append(delta)
                 yield {"event": "token", "data": {"delta": delta}}
-            elif not event.partial and event.turn_complete:
+            elif _is_terminal(event):
                 full = _event_text(event) or "".join(full_text)
                 if not full:
                     continue

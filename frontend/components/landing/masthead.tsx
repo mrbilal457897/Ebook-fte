@@ -79,9 +79,22 @@ export default function Masthead({
 
         <div className="poster-header-actions">
           {!signedIn && (
-            <Link href={signInHref} style={{ fontWeight: 600 }}>
+            <Link className="poster-signin" href={signInHref}>
               Sign in
             </Link>
+          )}
+          {signedIn && (
+            <button
+              type="button"
+              className="poster-signin"
+              onClick={async () => {
+                const { authClient } = await import("@/lib/auth/client")
+                await authClient.signOut()
+                window.location.reload()
+              }}
+            >
+              Sign out
+            </button>
           )}
           <Link className="poster-btn poster-btn--yellow poster-btn--sm" href={primaryHref}>
             Start free

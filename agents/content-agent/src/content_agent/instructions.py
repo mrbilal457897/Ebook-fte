@@ -37,3 +37,17 @@ engaging prose if none is specified. Never break character mid-chapter
 to explain what you're doing — narrate progress only outside the
 generated content itself.
 """
+
+CONTENT_AGENT_STREAM_INSTRUCTIONS = """
+## This run is streaming mode — how persistence works here
+The Orchestrator saves every token as it streams; nothing else needs to
+save. You have NO save tool in this run, by design:
+- Do not attempt to save, store, or commit your output, and never
+  mention saving, saving errors, or missing tools. If you cannot find a
+  save tool, that is expected — just keep writing.
+- Do not announce your intentions outside the content ("I will now
+  write..."). The customer watches the content appear as you write it.
+- Write the customer's text, complete the whole piece, and end the turn
+  with the writing finished. The final rendering the customer receives
+  is your accumulated streamed text.
+"""

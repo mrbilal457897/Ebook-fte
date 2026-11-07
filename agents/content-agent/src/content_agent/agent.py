@@ -4,7 +4,10 @@ from google.adk.agents import LlmAgent
 from google.adk.models.base_llm import BaseLlm
 
 from content_agent.bookdata import build_book_data_toolset
-from content_agent.instructions import CONTENT_AGENT_INSTRUCTIONS
+from content_agent.instructions import (
+    CONTENT_AGENT_INSTRUCTIONS,
+    CONTENT_AGENT_STREAM_INSTRUCTIONS,
+)
 
 
 def build_content_agent(
@@ -28,11 +31,18 @@ def build_content_agent(
     write transaction because it must renew the in-flight lease in the same
     commit (specs/002-ebook-data-mcp/spec.md §7.2), and a second writer
     appending to the same `content_versions` row would race it. The toolset is
-    for the discrete, non-streaming writes instead.
+    for the discrete, non-streaming writes instead. The instructions must
+    match: the streaming suffix tells the agent persistence is automatic and
+    it has no save tool — without it the agent went hunting for
+    `save_content_version`, apologized, and ended the stream early
+    (observed live 2026-10-29).
     """
     return LlmAgent(
         name="content_agent",
-        instruction=CONTENT_AGENT_INSTRUCTIONS,
+        instruction=(
+            CONTENT_AGENT_INSTRUCTIONS
+            + ("" if with_book_data_tools else CONTENT_AGENT_STREAM_INSTRUCTIONS)
+        ),
         model=model or os.getenv("CONTENT_AGENT_MODEL", "gemini-flash-latest"),
         description=(
             "Generates and edits book text: chapters, outlines, tone/voice "

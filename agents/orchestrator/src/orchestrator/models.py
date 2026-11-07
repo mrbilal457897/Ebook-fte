@@ -241,7 +241,12 @@ def create_book(
 
 
 def _issue_create_book(
-    conn: Connection, *, tenant_id: str, account_id: str, book_id: str | None = None
+    conn: Connection,
+    *,
+    tenant_id: str,
+    account_id: str,
+    book_id: str | None = None,
+    title: str = "Untitled draft",
 ) -> Any:
     """Issue the `books` insert and hand back its *unfetched* cursor.
 
@@ -255,12 +260,12 @@ def _issue_create_book(
     """
     return conn.execute(
         """
-        INSERT INTO books (id, tenant_id, account_id, status, created_at,
+        INSERT INTO books (id, tenant_id, account_id, title, status, created_at,
                            updated_at)
-        VALUES (%s, %s, %s, 'draft', now(), now())
+        VALUES (%s, %s, %s, %s, 'draft', now(), now())
         RETURNING id
         """,
-        (book_id or _new_id(), tenant_id, account_id),
+        (book_id or _new_id(), tenant_id, account_id, title),
     )
 
 
@@ -490,7 +495,8 @@ def get_model_credential(
     return fetchone(
         conn.execute(
             """
-            SELECT id, provider, encrypted_key, last_status
+            SELECT id, provider, encrypted_key, last_status,
+                   temperature, top_p, max_tokens
             FROM model_credentials
             WHERE id = %s AND tenant_id = %s
               AND (%s::uuid IS NULL OR account_id = %s)

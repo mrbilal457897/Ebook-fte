@@ -636,3 +636,214 @@ input {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ══ V3 poster theme for the auth screens and the writing workspace ══
+   Scoped under .v3-app so the sticker design-system pages are untouched.
+   Dark hero-gradient canvas, dark ink2 cards, gold accents, mono labels. */
+.v3-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--ivory, #F4EFE6);
+  background:
+    radial-gradient(700px 420px at 88% 10%, rgba(242, 107, 58, .20), transparent 70%),
+    radial-gradient(760px 500px at 8% 92%, rgba(15, 76, 74, .38), transparent 72%),
+    linear-gradient(160deg, #0B0C10 0%, #16183F 62%, #1D1033 100%);
+}
+
+/* Top bar */
+.v3-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+  padding: 0 clamp(16px, 4vw, 28px);
+  background: rgba(11, 12, 16, .86);
+  border-bottom: 1px solid #23262F;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.v3-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ivory, #F4EFE6);
+  font: 800 22px/1 var(--font-display);
+  letter-spacing: -.04em;
+}
+.v3-topbar-brand b { color: var(--gold); font-weight: 800; }
+.v3-topbar-drawn {
+  width: 22px;
+  height: 28px;
+  flex: none;
+  border-radius: 2px 5px 5px 2px;
+  background: linear-gradient(160deg, var(--gold), #d99a1f);
+  position: relative;
+}
+.v3-topbar-drawn::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #6B1D2A;
+  border-radius: 2px;
+}
+.v3-topbar-note {
+  color: var(--mut, #a9adbb);
+  font: 500 10px var(--font-label);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  text-align: right;
+  max-width: 46%;
+}
+@media(max-width: 640px) { .v3-topbar-note { display: none; } }
+
+/* Auth shell + card */
+.v3-app .auth-shell { flex: 1; align-items: center; justify-content: center; }
+.v3-app .auth-card {
+  background: var(--ink2, #15171E);
+  border: 1px solid #2A2E3A;
+  border-radius: 18px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .55);
+}
+.v3-app .auth-card::before {
+  content: "Member area";
+  color: var(--gold);
+  font: 500 10px var(--font-label);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+.v3-app .auth-title {
+  color: var(--ivory, #F4EFE6);
+  font-size: clamp(28px, 5vw, 38px);
+  letter-spacing: -.04em;
+  line-height: 1.04;
+}
+.v3-app .auth-subtitle { color: var(--mut, #a9adbb); }
+.v3-app .auth-subtitle a {
+  color: var(--gold);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 185, 56, .4);
+}
+
+/* Form fields */
+.v3-app .field-label {
+  color: #c4c7d0;
+  font-family: var(--font-label);
+  letter-spacing: .12em;
+}
+.v3-app .field-input {
+  height: 50px;
+  color: var(--ivory, #F4EFE6);
+  background: #1B1E26;
+  border: 1px solid #2A2E3A;
+  border-radius: 10px;
+  transition: border-color .18s ease, background .18s ease;
+}
+.v3-app .field-input::placeholder { color: #5A5E6C; }
+.v3-app .field-input:focus-visible {
+  outline: none;
+  border-color: var(--gold);
+  background: #1E212B;
+}
+.v3-app .field-error { color: #FF8B7B; }
+
+/* Buttons */
+.v3-app .btn-primary {
+  background: linear-gradient(160deg, var(--gold), #E8A21C);
+  color: var(--ink, #0B0C10);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(255, 185, 56, .25);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.v3-app .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(255, 185, 56, .35);
+}
+.v3-app .btn-primary:active:not(:disabled) { transform: translateY(0); filter: brightness(.96); }
+.v3-app .btn-primary:focus-visible { outline: 3px solid rgba(255, 185, 56, .5); outline-offset: 3px; }
+.v3-app .btn-primary:disabled {
+  background: #23262F;
+  color: #6C7184;
+  box-shadow: none;
+}
+
+.v3-app .btn-secondary {
+  background: transparent;
+  color: var(--ivory, #F4EFE6);
+  border: 1px solid rgba(244, 239, 230, .32);
+  border-radius: 999px;
+  box-shadow: none;
+  transition: border-color .18s ease, background .18s ease;
+}
+.v3-app .btn-secondary:hover:not(:disabled) {
+  border-color: var(--ivory);
+  background: rgba(244, 239, 230, .06);
+  transform: none;
+  box-shadow: none;
+}
+.v3-app .btn-secondary:focus-visible { outline: 3px solid rgba(244, 239, 230, .4); outline-offset: 3px; }
+
+.v3-app .divider { color: #6C7184; }
+.v3-app .divider::before,
+.v3-app .divider::after { background: #2A2E3A; }
+
+/* Writing workspace */
+.v3-app .app-shell { padding-top: clamp(18px, 3.5vh, 34px); }
+.v3-app .app-panel {
+  background: var(--ink2, #15171E);
+  color: var(--ivory, #F4EFE6);
+  border: 1px solid #2A2E3A;
+  border-radius: 18px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .55);
+}
+.v3-app .app-head { border-bottom: 1px solid #2A2E3A; padding-bottom: var(--space-4, 16px); }
+.v3-app .app-title {
+  color: var(--ivory, #F4EFE6);
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -.04em;
+}
+.v3-app .allowance-pill {
+  color: #c4c7d0;
+  background: #1B1E26;
+  border: 1px solid #2A2E3A;
+}
+.v3-app .allowance-pill .dot { box-shadow: 0 0 8px rgba(122, 200, 154, .5); }
+.v3-app .allowance-pill.is-working .dot { background: var(--gold); }
+
+/* Settings/BYOK discoverability from the workspace */
+.v3-app .app-head-link {
+  margin-left: auto;
+  color: var(--ivory, #F4EFE6);
+  border: 1px solid #2A2E3A;
+  border-radius: 999px;
+  padding: 0 14px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  font: 600 13px var(--font-body);
+  text-decoration: none;
+  transition: border-color .18s ease, color .18s ease;
+}
+.v3-app .app-head-link:hover { border-color: var(--gold, #FFB938); color: var(--gold, #FFB938); }
+
+/* Banner / status strips inside the panel */
+.v3-app .banner {
+  color: var(--ivory, #F4EFE6);
+  background: #1B1E26;
+  border: 1px solid #2A2E3A;
+  border-radius: 10px;
+}
+.v3-app .banner.is-info { border-color: rgba(255, 185, 56, .45); }
+
+@media(prefers-reduced-motion: reduce) {
+  .v3-app * { animation: none !important; }
+}

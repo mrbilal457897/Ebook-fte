@@ -59,15 +59,16 @@ export default function HowItWorksTour() {
         </p>
         </div>
         <div className="v3-story-stage" aria-label="Book preparation story preview">
-          <div className="v3-story-cover"><Book cover={COVERS[2]} decorative /></div>
-          <div className="v3-manuscript" aria-hidden="true">
-            <strong>The Quiet Tide</strong>
-            <i /><i /><i /><i /><i /><i /><i />
+          <div className="v3-story-cover"><Book cover={COVERS[2]} decorative />
+            <div className="v3-manuscript" aria-hidden="true">
+              <strong>The Salt Road</strong>
+              <i /><i /><i /><i /><i /><i /><i /><i /><i />
+            </div>
           </div>
           <div className="v3-format-chips"><span>EPUB</span><span>MOBI</span><span>PDF</span></div>
           <div className="v3-package-card">
             <b>Submission package</b>
-            <span>✓ &nbsp;KDP</span><span>✓ &nbsp;Apple Books</span><span>✓ &nbsp;IngramSpark</span>
+            <span>Amazon KDP <em>✓</em></span><span>Apple Books <em>✓</em></span><span>IngramSpark <em>✓</em></span>
             <strong>Publish · your click</strong>
           </div>
         </div>

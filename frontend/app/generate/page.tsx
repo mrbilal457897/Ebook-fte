@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
+import Link from "next/link"
 
 import Composer from "@/components/generate/composer"
 import GenerateShell from "@/components/generate/generate-shell"
@@ -172,6 +173,9 @@ function GenerateWorkspace() {
               {allowanceLabel}
             </span>
           )}
+          <Link className="app-head-link" href="/settings">
+            Settings
+          </Link>
         </header>
 
         {upgradePrompt && <UpgradePrompt />}

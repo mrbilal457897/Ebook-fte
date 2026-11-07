@@ -13,36 +13,47 @@ export type CoverData = {
 const MOTIFS: Record<CoverData["m"], ReactNode> = {
   orbit: (
     <>
-      <circle cx="120" cy="150" r="62" fill="none" stroke="currentColor" strokeWidth="2" />
-      <ellipse cx="120" cy="150" rx="92" ry="29" fill="none" stroke="currentColor" strokeWidth="2" transform="rotate(-27 120 150)" />
-      <circle cx="190" cy="98" r="8" fill="currentColor" />
+      <circle cx="120" cy="152" r="72" fill="none" stroke="currentColor" strokeWidth="2" />
+      <circle cx="120" cy="152" r="26" fill="currentColor" />
+      <ellipse cx="120" cy="152" rx="106" ry="30" fill="none" stroke="currentColor" strokeWidth="2.5" transform="rotate(-22 120 152)" />
+      <circle cx="208" cy="116" r="6" fill="currentColor" />
+      <circle cx="42" cy="222" r="6" fill="currentColor" />
+      <circle cx="162" cy="66" r="4" fill="currentColor" />
+      <circle cx="56" cy="88" r="3" fill="currentColor" />
+      <circle cx="188" cy="266" r="3" fill="currentColor" />
     </>
   ),
   sun: (
     <>
-      <circle cx="158" cy="128" r="48" fill="currentColor" opacity=".92" />
-      <path d="M0 240 Q75 180 130 228 T240 206 V340 H0Z" fill="currentColor" opacity=".32" />
-      <path d="M0 270 Q78 225 142 265 T240 245 V340 H0Z" fill="currentColor" opacity=".52" />
+      <circle cx="120" cy="128" r="46" fill="currentColor" />
+      <circle cx="120" cy="128" r="64" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3 10" />
+      <circle cx="120" cy="128" r="84" fill="none" stroke="currentColor" strokeWidth="1.5" opacity=".5" />
+      <path d="M0 262 Q120 210 240 262 V340 H0Z" fill="currentColor" opacity=".35" />
+      <path d="M0 292 Q120 248 240 292 V340 H0Z" fill="currentColor" opacity=".55" />
     </>
   ),
   wave: (
     <>
-      <path d="M0 182 Q35 150 70 182 T140 182 T210 182 T280 182" fill="none" stroke="currentColor" strokeWidth="4" />
-      <path d="M0 212 Q35 180 70 212 T140 212 T210 212 T280 212" fill="none" stroke="currentColor" strokeWidth="2" opacity=".75" />
-      <circle cx="176" cy="93" r="28" fill="none" stroke="currentColor" strokeWidth="2" />
+      <circle cx="120" cy="112" r="34" fill="currentColor" />
+      <path d="M0 200 Q60 174 120 200 T240 200" fill="none" stroke="currentColor" strokeWidth="4" />
+      <path d="M0 232 Q60 206 120 232 T240 232" fill="none" stroke="currentColor" strokeWidth="2.5" opacity=".7" />
+      <path d="M0 264 Q60 238 120 264 T240 264" fill="none" stroke="currentColor" strokeWidth="2" opacity=".45" />
+      <path d="M0 296 Q60 270 120 296 T240 296" fill="none" stroke="currentColor" strokeWidth="1.5" opacity=".25" />
     </>
   ),
   arch: (
     <>
-      <path d="M42 246V145a78 78 0 0 1 156 0v101" fill="none" stroke="currentColor" strokeWidth="7" />
-      <path d="M72 246V156a48 48 0 0 1 96 0v90" fill="none" stroke="currentColor" strokeWidth="3" opacity=".72" />
-      <circle cx="120" cy="148" r="8" fill="currentColor" />
+      <path d="M52 258V158a68 68 0 0 1 136 0v100" fill="none" stroke="currentColor" strokeWidth="8" />
+      <path d="M92 258V166a28 28 0 0 1 56 0v92" fill="currentColor" opacity=".35" />
+      <circle cx="120" cy="76" r="14" fill="currentColor" />
+      <path d="M40 266h160" stroke="currentColor" strokeWidth="3" />
     </>
   ),
   grid: (
     <>
       <path d="M42 76H198M42 102H176M42 128H190M42 154H155M42 180H196" stroke="currentColor" strokeWidth="3" opacity=".75" />
       <rect x="142" y="202" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="3" />
+      <circle cx="120" cy="272" r="14" fill="currentColor" />
     </>
   ),
   moon: (
@@ -51,17 +62,19 @@ const MOTIFS: Record<CoverData["m"], ReactNode> = {
       <circle cx="78" cy="106" r="3" fill="currentColor" />
       <circle cx="110" cy="72" r="2" fill="currentColor" />
       <circle cx="199" cy="178" r="3" fill="currentColor" />
+      <circle cx="64" cy="258" r="5" fill="currentColor" opacity=".6" />
+      <circle cx="188" cy="272" r="4" fill="currentColor" opacity=".6" />
     </>
   ),
 }
 
 export const COVERS: CoverData[] = [
-  { t: "Orbit of Salt", g: "Sci-fi", a: "M. Okafor", bg: "#14163A", fg: "#F2C879", m: "orbit" },
-  { t: "The Slow Yes", g: "Self-help", a: "A. Rahman", bg: "#E9DCC3", fg: "#2A2A2A", m: "sun" },
-  { t: "The Quiet Tide", g: "Mystery", a: "L. Verhoeven", bg: "#0F4C4A", fg: "#F4EFE6", m: "wave" },
-  { t: "Paper Kingdoms", g: "Fantasy", a: "S. Idris", bg: "#6B1D2A", fg: "#F5D9A8", m: "arch" },
-  { t: "Ledger & Light", g: "Business", a: "D. Chen", bg: "#F26B3A", fg: "#101010", m: "grid" },
-  { t: "Small Hours", g: "Poetry", a: "N. Ali", bg: "#2B2B2B", fg: "#E8E2D4", m: "moon" },
+  { t: "Orbit of Salt", g: "Sci-fi", a: "M. Okafor", bg: "#2A1245", fg: "#FFD166", m: "orbit" },
+  { t: "The Slow Yes", g: "Self-help", a: "A. Rahman", bg: "#166A55", fg: "#FFF3D6", m: "sun" },
+  { t: "The Quiet Tide", g: "Mystery", a: "L. Verhoeven", bg: "#0B2545", fg: "#7DE3C3", m: "wave" },
+  { t: "Paper Kingdoms", g: "Fantasy", a: "S. Idris", bg: "#46135F", fg: "#FFC97E", m: "arch" },
+  { t: "Ledger & Light", g: "Business", a: "D. Chen", bg: "#F6F1E7", fg: "#C2410C", m: "grid" },
+  { t: "Small Hours", g: "Poetry", a: "N. Ali", bg: "#12121C", fg: "#C9F24B", m: "moon" },
 ]
 
 type BookProps = {

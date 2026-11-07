@@ -50,20 +50,22 @@ export default function Landing({
       const copyEl = document.querySelector<HTMLElement>(".v3-hero-grid > .poster-hero-copy")
       const copyHeight = copyEl?.offsetHeight ?? (isTwoColumn ? 560 : 390)
       const availableHeight = isTwoColumn ? Math.max(220, h - copyHeight - 30) : Math.max(170, h - 390)
-      const availableWidth = Math.max(220, Math.min(600, stageContainer.clientWidth || w - 36, w - 36))
-      const renderedScale = isTwoColumn
-        // Books: doubled per user request — height fit is relaxed (×2) but the
-        // width fit still uses the measured column so books never crop.
-        ? Math.min(0.85, availableWidth / 600, (availableHeight / 600) * 2)
-        // Stacked phones: fill the measured width/height without cropping.
-        : Math.min(0.9, availableWidth / 600, (availableHeight / 600) * 1.5)
-      // Book composition is authored on a 600px-wide stage; on phones the
+      // Stage composition is authored on a 660px-wide canvas (three 240px
+      // books + 18px spine/page bleed on each side). Scale is height-limited
+      // so the column never towers; width keeps the exact fit with no crop.
+      const availableWidth = Math.max(220, Math.min(660, stageContainer.clientWidth || w - 36, w - 36))
+      // 0.88 factor: the user asked for visibly shorter books — applied to
+      // every path so the width-bound layouts shrink too.
+      const renderedScale = (isTwoColumn
+        ? Math.min(0.7, availableWidth / 660, (availableHeight / 600) * 2)
+        : Math.min(0.9, (stageContainer.clientWidth || w - 36) / 660, (availableHeight / 600) * 1.5)) * 0.88
+      // Book composition is authored on a 660px-wide stage; on phones the
       // three books sit inside the (narrower) visual column.
-      const compositionWidth = Math.min(600, stageContainer.clientWidth || w - 36)
+      const compositionWidth = Math.min(660, stageContainer.clientWidth || w - 36)
       stageWrap.style.setProperty("--hero-book-scale", String(renderedScale))
-      stageWrap.style.setProperty("--hero-layout-width", `${Math.min(600, stageContainer.clientWidth || 600)}px`)
+      stageWrap.style.setProperty("--hero-layout-width", `${Math.min(660, stageContainer.clientWidth || 660)}px`)
       const positions = isTwoColumn
-        ? { left: 0, center: 180, right: 360 }
+        ? { left: 30, center: 210, right: 390 }
         : { left: Math.max(0, compositionWidth / 2 - 230), center: compositionWidth / 2 - 120, right: Math.max(0, compositionWidth / 2 + 26) }
       stageWrap.style.setProperty("--hero-x-left", `${positions.left}px`)
       stageWrap.style.setProperty("--hero-x-center", `${positions.center}px`)
@@ -213,9 +215,9 @@ export default function Landing({
           </div>
         </div>
 
-        <LearnBento />
-
         <HowItWorksTour />
+
+        <LearnBento />
 
         <CoversShelf />
 

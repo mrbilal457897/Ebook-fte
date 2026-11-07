@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import Link from "next/link"
 import gsap from "gsap"
 import { prefersReducedMotion } from "@/lib/motion-preference"
 
 /**
- * Design-system auth shell: centered sticker card on the paper canvas with a GSAP
- * entrance (fade + 12px rise, staggered children, `prefers-reduced-motion`
- * respected). One primary action per screen.
+ * Auth screen on the v3 poster theme: dark gradient canvas, the small brand
+ * topbar, and a centered card with the same entrance animation as before
+ * (fade + 12px rise, staggered children, prefers-reduced-motion respected).
  */
 export default function AuthShell({ children }: { children: React.ReactNode }) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -36,8 +37,17 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <div ref={rootRef} className="auth-shell">
-      <div className="auth-card">{children}</div>
+    <div ref={rootRef} className="v3-app v3-app-auth">
+      <div className="v3-topbar">
+        <Link className="v3-topbar-brand" href="/">
+          <span className="v3-topbar-drawn" aria-hidden="true" />
+          Tomewick <b>AI</b>
+        </Link>
+        <span className="v3-topbar-note">E-book worker · human on the switch</span>
+      </div>
+      <div className="auth-shell v3-auth-shell">
+        <div className="auth-card">{children}</div>
+      </div>
     </div>
   )
 }
